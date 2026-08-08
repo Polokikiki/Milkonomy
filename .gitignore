@@ -1,0 +1,25 @@
+# Common
+dist
+node_modules
+.eslintcache
+vite.config.*.timestamp*
+
+# MacOS
+.DS_Store
+
+# Local env files
+*.local
+
+# Logs
+*.log
+
+# Use the pnpm
+package-lock.json
+# yarn.lock
+
+.idea/
+docs/
+milkonomy260423/
+
+# 临时预览文件
+_new_icons_preview.*
