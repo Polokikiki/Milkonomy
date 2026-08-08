@@ -6,9 +6,9 @@ const { locale } = useI18n()
 
 <template>
   <div class="changelog-page">
-    <!-- ================== v2.2.3 ================== -->
+    <!-- ================== v2.3.0 ================== -->
     <template v-if="locale !== 'en'">
-      <h2>v2.2.3 -- 2026-08-08</h2>
+      <h2>v2.3.0 -- 2026-08-08</h2>
 
       <p><strong>一、哞卡社区 Buff</strong></p>
       <ol>
@@ -33,7 +33,7 @@ const { locale } = useI18n()
       <p>📥 <a href="https://home.greasyfork.org.cn/zh-hans/info#/zh-CN/scripts/587094/detail" target="_blank" style="color:#409eff">安装脚本</a></p>
     </template>
     <template v-else>
-      <h2>v2.2.3 -- 2026-08-08</h2>
+      <h2>v2.3.0 -- 2026-08-08</h2>
 
       <p><strong>1. Moo Card Community Buff</strong></p>
       <ol>
