@@ -1,0 +1,12 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# 全局 ts 类型检查
+npx vue-tsc
+# 执行 lint-staged 中配置的任务
+npx lint-staged
+
+# 运行版本更新脚本
+tsx scripts/update-version.ts
+git add package.json
+

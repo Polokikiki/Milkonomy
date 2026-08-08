@@ -28,7 +28,7 @@ export const announcementConfig: AnnouncementConfig = {
     content: "一、哞卡社区 Buff / 二、数据导出插件同步 / 三、脚本未安装通知 / 四、使用教程"
   },
   link: {
-    url: "https://polokikiki.github.io/Milkonomy/#/changelog",
+    url: "/changelog",
     text: "查看详情"
   }
 }

@@ -25,17 +25,18 @@ function handleClose() {
         <div class="announcement-text">
           <span class="announcement-title">{{ t(announcementConfig.message.title) }}</span>
           <span class="announcement-message">{{ t(announcementConfig.message.content) }}</span>
-          <a
+          <router-link
             v-if="announcementConfig.link"
-            :href="announcementConfig.link.url"
-            target="_blank"
-            rel="noopener noreferrer"
+            :to="announcementConfig.link.url.startsWith('http') ? announcementConfig.link.url : announcementConfig.link.url"
+            :target="announcementConfig.link.url.startsWith('http') ? '_blank' : '_self'"
+            :rel="announcementConfig.link.url.startsWith('http') ? 'noopener noreferrer' : ''"
             class="announcement-link"
+            @click="handleClose"
           >
             <span class="link-icon">⭐</span>
             {{ announcementConfig.link.text }}
             <span class="link-arrow">→</span>
-          </a>
+          </router-link>
         </div>
         <button class="announcement-close" :title="t('关闭')" @click="handleClose">
           ✕
