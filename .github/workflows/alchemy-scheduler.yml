@@ -1,0 +1,28 @@
+name: Alchemy Leaderboard Update
+on:
+  # schedule:
+  #   - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+jobs:
+  execute:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: yarn
+          cache-dependency-path: scripts/alchemy-leaderboard/yarn.lock # 🔥 关键：仅缓存子目录
+
+      - name: Install Yarn
+        run: npm install -g yarn@1.22.19
+
+      - name: Install Dependencies
+        working-directory: ./scripts/alchemy-leaderboard # 🚀 隔离安装
+        run: yarn install --frozen-lockfile
+
+      - name: Execute
+        working-directory: ./scripts/alchemy-leaderboard
+        run: yarn start

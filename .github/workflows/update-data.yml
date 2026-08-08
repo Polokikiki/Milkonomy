@@ -1,0 +1,43 @@
+name: Update Game Data
+on:
+  workflow_dispatch:
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout gh-pages branch
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: gh-pages
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+          git fetch origin main
+
+      - name: Copy data files from main
+        shell: bash
+        run: |
+          git checkout origin/main -- public/data/data.json public/data/market.json
+          mkdir -p data
+          cp public/data/data.json data/data.json
+          cp public/data/market.json data/market.json
+          rm -rf public
+
+      - name: Commit and push if changed
+        shell: bash
+        run: |
+          if git diff --quiet -- data; then
+            echo "No data changes detected"
+            exit 0
+          fi
+          git add data/data.json data/market.json
+          git commit -m "Update data files from main"
+          git push origin gh-pages

@@ -1,0 +1,80 @@
+name: Build And Deploy milkonomy
+# 允许手动触发
+on:
+  # 推送 main 自动部署（如不需要可注释掉这一段）
+  push:
+    branches: [main]
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      force:
+        type: boolean
+        default: false
+        description: 是否强制打包部署
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      # GitHub Pages (Project Pages) 通常部署在 /<repo>/ 子路径下。
+      # 这里根据仓库名自动设置 Vite base 与 router history，避免资源 404 导致白屏。
+      - name: Set GitHub Pages env
+        shell: bash
+        run: |
+          REPO_NAME="${GITHUB_REPOSITORY#*/}"
+          if [[ "$REPO_NAME" == *.github.io ]]; then
+            echo "VITE_PUBLIC_PATH=/" >> "$GITHUB_ENV"
+          else
+            echo "VITE_PUBLIC_PATH=/$REPO_NAME/" >> "$GITHUB_ENV"
+          fi
+          echo "VITE_ROUTER_HISTORY=hash" >> "$GITHUB_ENV"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      # fix https://github.com/vitejs/vite/issues/9119
+      - name: Create .nojekyll
+        run: touch dist/.nojekyll
+
+      # 如果 gh-pages 分支已存在，则删除 dist/data，避免覆盖线上最新 data/
+      # 如果 gh-pages 不存在（第一次部署），保留 dist/data 以确保站点可正常运行
+      - name: Check gh-pages branch exists
+        shell: bash
+        run: |
+          if git ls-remote --exit-code --heads origin gh-pages > /dev/null 2>&1; then
+            echo "HAS_GH_PAGES=true" >> "$GITHUB_ENV"
+          else
+            echo "HAS_GH_PAGES=false" >> "$GITHUB_ENV"
+          fi
+
+      - name: Remove dist/data (keep remote data)
+        if: env.HAS_GH_PAGES == 'true'
+        run: rm -rf dist/data
+
+      - name: Deploy
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          # Use the built-in GITHUB_TOKEN (recommended). Avoid custom secrets that are not a PAT.
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: gh-pages
+          folder: dist
+          clean: false # 不清除 gh-pages 上已有文件（例如 data/）
