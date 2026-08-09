@@ -6,9 +6,9 @@ const { locale } = useI18n()
 
 <template>
   <div class="changelog-page">
-    <!-- ================== v2.2.3 ================== -->
+    <!-- ================== v2.3.0 ================== -->
     <template v-if="locale !== 'en'">
-      <h2>v2.2.3 -- 2026-08-08</h2>
+      <h2>v2.3.0 -- 2026-08-08</h2>
 
       <p><strong>一、哞卡社区 Buff</strong></p>
       <ol>
@@ -41,7 +41,7 @@ const { locale } = useI18n()
       <p style="color:#e6a23c">⚠ 请在打赏时留下您的游戏昵称，这很重要！！</p>
     </template>
     <template v-else>
-      <h2>v2.2.3 -- 2026-08-08</h2>
+      <h2>v2.3.0 -- 2026-08-08</h2>
 
       <p><strong>1. Moo Card Community Buff</strong></p>
       <ol>
