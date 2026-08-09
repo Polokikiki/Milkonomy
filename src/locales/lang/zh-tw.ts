@@ -590,6 +590,7 @@ export default {
   "Milking Tea": "挤奶茶",
   "Minor Heal": "初级自愈术",
   "Mirror Of Protection": "保护之镜",
+  "Moo Card": "哞卡",
   "Mooberry": "哞莓",
   "Mooberry Cake": "哞莓蛋糕",
   "Mooberry Donut": "哞莓甜甜圈",

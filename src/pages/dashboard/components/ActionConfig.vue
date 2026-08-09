@@ -469,7 +469,15 @@ function doesEquipmentApply(itemHrid: string | undefined, action: Action): boole
 // 一键导入（从 localStorage 或剪贴板读取）
 async function onClipboardImport() {
   try {
+    // 1. 从 localStorage 读取 Tampermonkey 写入的数据
     let text = localStorage.getItem("milkonomy_last_export") || ""
+
+    // 2. 备选：读剪贴板
+    if (!text || !text.trim()) {
+      try {
+        text = await navigator.clipboard.readText()
+      } catch (_) {}
+    }
 
     if (!text || !text.trim()) {
       ElMessageBox.alert("<p>检测到未安装数据导出脚本。</p><p style=\"margin-top:8px\">📥 <a href=\"https://home.greasyfork.org.cn/zh-hans/info#/zh-CN/scripts/587094/detail\" target=\"_blank\">安装脚本</a></p><p style=\"margin-top:8px;color:#909399\">安装后刷新 MilkyWay Idle 页面，再回利润网点「一键导入」。</p>", t("未安装脚本"), { dangerouslyUseHTMLString: true, confirmButtonText: t("知道了") }); return
@@ -1130,8 +1138,8 @@ function getAchievementEffect(type: AchievementTier) {
 
     <template v-for="[key, communityBuff] in playerStore.config.communityBuffMap.entries()" :key="key">
       <div v-if="communityBuff.level" class="community-buff ml-2">
-        <ItemIcon :hrid="getCommunityBuffDetailOf(communityBuff.hrid!)?.buff.typeHrid" :width="22" :height="22" />
-        <div v-if="key !== 'moo_card' && communityBuff.level" class="community-level">
+        <ItemIcon :hrid="getCommunityBuffDetailOf(communityBuff.hrid!).buff.typeHrid" :width="22" :height="22" />
+        <div v-if="communityBuff.level && key !== 'moo_card'" class="community-level">
           Lv.{{ communityBuff.level }}
         </div>
       </div>
@@ -1343,22 +1351,14 @@ function getAchievementEffect(type: AchievementTier) {
           </div>
         </template>
         <div class="buff-tofu-grid">
-          <template v-for="row in communityBuffList.filter(item => communityBuffs ? communityBuffs.includes(item.type) : true)" :key="`community-${row.type}`">
-            <div v-if="row.type === 'moo_card'" class="buff-tofu">
-              <div class="buff-tofu-head">
-                <ItemIcon :hrid="getCommunityBuffDetailOf(row.hrid!)?.buff.typeHrid ?? row.hrid" :width="22" :height="22" />
-                <span>{{ t('哞卡') }}</span>
-              </div>
-              <el-switch v-model="row.level" :active-value="1" :inactive-value="0" />
+          <div class="buff-tofu" v-for="row in communityBuffList.filter(item => communityBuffs ? communityBuffs.includes(item.type) : true)" :key="`community-${row.type}`">
+            <div class="buff-tofu-head">
+              <ItemIcon :hrid="getCommunityBuffDetailOf(row.hrid!).buff.typeHrid" :width="22" :height="22" />
+              <span>{{ row.type === 'moo_card' ? getTrans(getCommunityBuffDetailOf(row.hrid!).name) : t('等级') }}</span>
             </div>
-            <div v-else class="buff-tofu">
-              <div class="buff-tofu-head">
-                <ItemIcon :hrid="getCommunityBuffDetailOf(row.hrid!)?.buff.typeHrid" :width="22" :height="22" />
-                <span>{{ t('等级') }}</span>
-              </div>
-              <el-input-number v-model="row.level" :min="0" :max="20" style="width: 90px" :controls="false" />
-            </div>
-          </template>
+            <el-switch v-if="row.type === 'moo_card'" :model-value="!!row.level" @change="(v) => row.level = v ? 1 : 0" />
+            <el-input-number v-else v-model="row.level" :min="0" :max="20" style="width: 90px" :controls="false" />
+          </div>
         </div>
       </el-card>
 

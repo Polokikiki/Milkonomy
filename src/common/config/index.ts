@@ -26,7 +26,7 @@ export const DEFAULT_TEA: Record<Action, string[]> = Object.freeze({
 })
 
 export const DEFAULT_COMMUNITY_BUFF_LIST: CommunityBuffItem[] = [
-  { type: "moo_card", hrid: "/community_buff_types/moo_card", level: undefined },
+  { type: "moo_card", hrid: "/community_buff_types/moo_card", level: 0 },
   { type: "experience", hrid: "/community_buff_types/experience", level: undefined },
   { type: "gathering_quantity", hrid: "/community_buff_types/gathering_quantity", level: undefined },
   { type: "production_efficiency", hrid: "/community_buff_types/production_efficiency", level: undefined },

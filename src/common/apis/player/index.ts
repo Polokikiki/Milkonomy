@@ -257,6 +257,10 @@ function initBuffMap() {
         if (buff.typeHrid === "/buff_types/wisdom") {
           buffs[`${action}Experience`] = (buffs[`${action}Experience`] || 0) + (buff.flatBoost + buff.flatBoostLevelBonus * (cb.level - 1))
         }
+        if (buff.typeHrid === "/buff_types/moo_card") {
+          // moo_card 是 Moo Pass 订阅开关型奖励，开启时所有动作经验 +5%
+          buffs[`${action}Experience`] = (buffs[`${action}Experience`] || 0) + 0.05
+        }
         if (buff.typeHrid === "/buff_types/gathering") {
           buffs[`${action}Gathering`] = (buffs[`${action}Gathering`] || 0) + (buff.flatBoost + buff.flatBoostLevelBonus * (cb.level - 1))
         }

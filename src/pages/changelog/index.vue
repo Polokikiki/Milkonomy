@@ -6,9 +6,9 @@ const { locale } = useI18n()
 
 <template>
   <div class="changelog-page">
-    <!-- ================== v2.3.0 ================== -->
+    <!-- ================== v2.2.3 ================== -->
     <template v-if="locale !== 'en'">
-      <h2>v2.3.0 -- 2026-08-08</h2>
+      <h2>v2.2.3 -- 2026-08-08</h2>
 
       <p><strong>一、哞卡社区 Buff</strong></p>
       <ol>
@@ -31,9 +31,17 @@ const { locale } = useI18n()
         <li>安装脚本 → 刷新游戏页面和利润网 → 点击「一键导入」即可。</li>
       </ol>
       <p>📥 <a href="https://home.greasyfork.org.cn/zh-hans/info#/zh-CN/scripts/587094/detail" target="_blank" style="color:#409eff">安装脚本</a></p>
+
+      <p><strong>五、打赏</strong></p>
+      <p>感谢以下玩家的支持：</p>
+      <ul>
+        <li>SukiSukiDaiSuki（微信 ¥5.2）</li>
+        <li>Blue（¥188.88）</li>
+      </ul>
+      <p style="color:#e6a23c">⚠ 请在打赏时留下您的游戏昵称，这很重要！！</p>
     </template>
     <template v-else>
-      <h2>v2.3.0 -- 2026-08-08</h2>
+      <h2>v2.2.3 -- 2026-08-08</h2>
 
       <p><strong>1. Moo Card Community Buff</strong></p>
       <ol>
@@ -56,6 +64,14 @@ const { locale } = useI18n()
         <li>Install script → Refresh MilkyWay Idle and Milkonomy → Click "One-Click Import".</li>
       </ol>
       <p>📥 <a href="https://home.greasyfork.org.cn/zh-hans/info#/zh-CN/scripts/587094/detail" target="_blank" style="color:#409eff">Install Script</a></p>
+
+      <p><strong>5. Donations</strong></p>
+      <p>Thanks to the following players for your support:</p>
+      <ul>
+        <li>SukiSukiDaiSuki (WeChat ¥5.2)</li>
+        <li>Blue (¥188.88)</li>
+      </ul>
+      <p style="color:#e6a23c">⚠ Please include your in-game nickname when donating — this is important!</p>
     </template>
 
     <!-- ==================== v2.2.2 ==================== -->

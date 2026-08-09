@@ -22,13 +22,13 @@ export interface AnnouncementConfig {
 
 export const announcementConfig: AnnouncementConfig = {
   enabled: true,
-  id: "v2.3.0-moo-card",
+  id: "v2.2.3-moo-card",
   message: {
-    title: "v2.3.0 更新公告",
-    content: "一、哞卡社区 Buff / 二、数据导出插件同步 / 三、脚本未安装通知 / 四、使用教程"
+    title: "v2.2.3 更新公告",
+    content: "哞卡社区 Buff / 数据导出插件同步 / 脚本未安装通知 / 打赏：感谢 SukiSukiDaiSuki（微信 ¥5.2）、Blue（¥188.88）的支持！"
   },
   link: {
-    url: "/changelog",
+    url: "https://polokikiki.github.io/Milkonomy/#/changelog",
     text: "查看详情"
   }
 }
