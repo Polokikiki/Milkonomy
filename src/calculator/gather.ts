@@ -49,7 +49,7 @@ export class GatherCalculator extends Calculator {
       return {
         hrid: output.itemHrid,
         // 采集茶补正
-        count: baseCount * (1 - effectiveProcessingBuff) * (1 + gatheringBuff),
+        count: (baseCount + gatheringBuff) * (1 - effectiveProcessingBuff),
         marketPrice: getPriceOf(output.itemHrid).bid
       }
     })
@@ -61,7 +61,7 @@ export class GatherCalculator extends Calculator {
         const baseCount = (rawDrop.maxCount + rawDrop.minCount) / 2
         list.push({
           hrid: processingInfo.hrid,
-          count: baseCount * processingBuff * (1 + gatheringBuff) / processingInfo.inputCount,
+          count: (baseCount + gatheringBuff) * processingBuff / processingInfo.inputCount,
           marketPrice: getPriceOf(processingInfo.hrid).bid
         })
       }
