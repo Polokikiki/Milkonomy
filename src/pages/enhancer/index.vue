@@ -85,14 +85,14 @@ const costGuideExpandedRowKeys = ref<string[]>([])
 
 const defaultConfig = {
   hourlyRate: 5000000,
-  taxRate: 2,
+  taxRate: 5,
   enhanceLevel: 10
 }
 
-// Market tax rate: only 0% / 2%.
-// Internally we persist `ignoreTax` (0% => true, 2% => false).
+// Market tax rate: only 0% / 5%.
+// Internally we persist `ignoreTax` (0% => true, 5% => false).
 const marketTaxRate = computed<number>({
-  get: () => (enhancerStore.config.ignoreTax ? 0 : 2),
+  get: () => (enhancerStore.config.ignoreTax ? 0 : 5),
   set: (value: number) => {
     enhancerStore.config.ignoreTax = value === 0
   }
@@ -925,10 +925,10 @@ const results = computed(() => {
     return []
   }
 
-  console.time('[强化分解] results')
+  console.time("[强化分解] results")
   const result = []
   const ignoreTax = !!enhancerStore.config.ignoreTax
-  const sellTaxFactor = ignoreTax ? 1 : 0.98
+  const sellTaxFactor = ignoreTax ? 1 : 0.95
   const enhanceLevel = enhancerStore.enhanceLevel ?? defaultConfig.enhanceLevel
   for (let i = 1; i <= enhanceLevel; ++i) {
     const calc = new EnhanceCalculator({
@@ -982,8 +982,8 @@ const results = computed(() => {
       profitRateFormatted: Format.percent(profitPP / totalCostNoHourly)
     })
   }
-  console.timeEnd('[强化分解] results')
-  console.log('[强化分解] #' + _resultsRunCount, '强化等级:', enhanceLevel, '行数:', result.length)
+  console.timeEnd("[强化分解] results")
+  console.log(`[强化分解] #${_resultsRunCount}`, "强化等级:", enhanceLevel, "行数:", result.length)
   return result
 })
 
@@ -1400,6 +1400,7 @@ watch(menuVisible, (value) => {
                   :max="2"
                   controls-position="right"
                   :controls="true"
+                  disabled
                 />
               </div>
             </el-tab-pane>

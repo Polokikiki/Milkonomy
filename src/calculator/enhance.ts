@@ -3,6 +3,7 @@ import * as Format from "@@/utils/format"
 import * as math from "mathjs"
 import { getEnhancelateCache, getEnhancementExp, getEnhanceTimeCost, getEnhancingEssenceDropTable, getEnhancingRareDropTable, getGameDataApi, getItemDetailOf, getPriceOf, setEnhancelateCache } from "@/common/apis/game"
 import { getBuffOf, getEnhanceSuccessRatio, getTeaIngredientList } from "@/common/apis/player"
+import { SELL_TAX_FACTOR } from "@/common/constants/market"
 import { getTrans } from "@/locales"
 import Calculator from "."
 import { DecomposeCalculator } from "./alchemy"
@@ -401,7 +402,7 @@ export class EnhanceCalculator extends Calculator {
       const income = this.productListWithPrice.slice(1).reduce((acc, item) => acc + item.price * item.count * actions * (item.rate || 1), 0)
       const decIncome = d.successRate * d.productListWithPrice.reduce((acc, item) => acc + item.price * item.count * (item.rate || 1), 0)
       const decCost = d.ingredientListWithPrice.slice(1).reduce((acc, item) => acc + item.price * item.count, 0)
-      const v = (decIncome * (this._targetRate || 1) + income) * 0.98 - cost - decCost * (this._targetRate || 1)
+      const v = (decIncome * (this._targetRate || 1) + income) * SELL_TAX_FACTOR - cost - decCost * (this._targetRate || 1)
       if (v > best) best = v
     }
     this._maxProfitApproximate = best
@@ -424,7 +425,6 @@ export class EnhanceCalculator extends Calculator {
     if (result) {
       return result
     }
-
 
     const targetLevel = this.enhanceLevel
     const successRateTable = getGameDataApi().enhancementLevelSuccessRateTable

@@ -38,7 +38,9 @@ const { locale } = useI18n()
         <li>SukiSukiDaiSuki（微信 ¥5.2）</li>
         <li>Blue（¥188.88）</li>
       </ul>
-      <p style="color:#e6a23c">⚠ 请在打赏时留下您的游戏昵称，这很重要！！</p>
+      <p style="color:#e6a23c">
+        ⚠ 请在打赏时留下您的游戏昵称，这很重要！！
+      </p>
     </template>
     <template v-else>
       <h2>v2.3.0 -- 2026-08-08</h2>
@@ -71,7 +73,43 @@ const { locale } = useI18n()
         <li>SukiSukiDaiSuki (WeChat ¥5.2)</li>
         <li>Blue (¥188.88)</li>
       </ul>
-      <p style="color:#e6a23c">⚠ Please include your in-game nickname when donating — this is important!</p>
+      <p style="color:#e6a23c">
+        ⚠ Please include your in-game nickname when donating — this is important!
+      </p>
+    </template>
+
+    <!-- ================== v2.4.0 ================== -->
+    <template v-if="locale !== 'en'">
+      <h2>v2.4.0 -- 2026-08-13</h2>
+
+      <p><strong>一、市场税率调整</strong></p>
+      <ol>
+        <li>市场卖出税率由 2% 调整为 5%（税后因子 0.98 → 0.95）。</li>
+        <li>全链路同步：主计算器、强化分解、超级强化、排行榜、收藏夹五条计算路径统一应用新税率。</li>
+        <li>原硬编码税率因子（workflow.ts 构造函数默认值、enhance.ts 分解利润近似）统一改为引用 SELL_TAX_FACTOR 常量，避免后续税率漂移。</li>
+      </ol>
+
+      <p><strong>二、强化页面 UI 调整</strong></p>
+      <ol>
+        <li>强化分解 / 超级强化页的「税率」输入框已锁定为 5%（市场税率不再可配置，避免与全局常量冲突）。</li>
+        <li>修复超级强化页「溢价率」输入框绑定错误：原绑定指向市场税率，已改为真正的溢价率字段。</li>
+      </ol>
+    </template>
+    <template v-else>
+      <h2>v2.4.0 -- 2026-08-13</h2>
+
+      <p><strong>1. Market Tax Adjustment</strong></p>
+      <ol>
+        <li>Market sell tax rate changed from 2% to 5% (after-tax factor 0.98 → 0.95).</li>
+        <li>Applied uniformly across all calculation paths: main calculator, enhancer, enhancest, leaderboard, and favorites.</li>
+        <li>Hardcoded tax factors (workflow.ts constructor default, enhance.ts decomposition profit approximation) now reference the SELL_TAX_FACTOR constant to prevent future tax drift.</li>
+      </ol>
+
+      <p><strong>2. Enhancement UI Changes</strong></p>
+      <ol>
+        <li>The "Tax Rate" input in enhancer/enhancest pages is locked to 5% (market tax is no longer user-configurable, avoiding conflicts with the global constant).</li>
+        <li>Fixed "Premium Rate" input binding in the enhancest page: was bound to market tax rate, now correctly bound to the premium rate field.</li>
+      </ol>
     </template>
 
     <!-- ==================== v2.2.2 ==================== -->

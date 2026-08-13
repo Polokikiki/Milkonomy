@@ -42,7 +42,7 @@ const currentDecompose = ref({
 
 const defaultConfig = {
   hourlyRate: 5000000,
-  taxRate: 2,
+  taxRate: 5,
   enhanceLevel: 10,
   originLevel: 0,
   escapeLevel: -1
@@ -77,15 +77,15 @@ interface Item {
   protection?: Ingredient
 }
 
-// Market tax rate: only 0% / 2%.
-// Internally persist `ignoreTax` (0% => true, 2% => false).
+// Market tax rate: only 0% / 5%.
+// Internally persist `ignoreTax` (0% => true, 5% => false).
 const marketTaxRate = computed<number>({
-  get: () => (enhancerStore.advancedConfig.ignoreTax ? 0 : 2),
+  get: () => (enhancerStore.advancedConfig.ignoreTax ? 0 : 5),
   set: (value: number) => {
     enhancerStore.advancedConfig.ignoreTax = value === 0
   }
 })
-const sellTaxFactorComputed = computed(() => marketTaxRate.value === 0 ? 1 : 0.98)
+const sellTaxFactorComputed = computed(() => marketTaxRate.value === 0 ? 1 : 0.95)
 
 function onSelect(item: ItemDetail) {
   if (!item) {
@@ -205,10 +205,10 @@ const results = computed(() => {
     return []
   }
 
-  console.time('[超级强化] results')
+  console.time("[超级强化] results")
   const result = []
   const ignoreTax = !!enhancerStore.advancedConfig.ignoreTax
-  const sellTaxFactor = ignoreTax ? 1 : 0.98
+  const sellTaxFactor = ignoreTax ? 1 : 0.95
   const enhanceLevel = enhancerStore.advancedConfig.enhanceLevel ?? defaultConfig.enhanceLevel
   let protectLevel = Math.max(2, (enhancerStore.advancedConfig.escapeLevel ?? defaultConfig.escapeLevel) + 1)
   for (; protectLevel <= enhanceLevel; ++protectLevel) {
@@ -245,8 +245,8 @@ const results = computed(() => {
     /**
      * tag = 0时，利用工时费计算指导价
         总成本 = 收入
-        材料费用 + 总工时费 + 1个初始物品成本 = (成功率*指导价 + 逃逸率*逃逸价格或白板价格) * 98%
-        因此 指导价 = (总成本 / 98% - 逃逸价格*逃逸率) / 成功率
+        材料费用 + 总工时费 + 1个初始物品成本 = (成功率*指导价 + 逃逸率*逃逸价格或白板价格) * 95%
+        因此 指导价 = (总成本 / 95% - 逃逸价格*逃逸率) / 成功率
      */
 
     const escapePrice = calc.realEscapeLevel === 0
@@ -263,8 +263,8 @@ const results = computed(() => {
     /**
      * tag = 1时，利用指导价计算工时费
      *  总成本 = 收入
-        材料费用 + 总工时费 + 1个初始物品成本 = (成功率*指导价 + 逃逸率*逃逸价格或白板价格) * 98%
-        因此 总工时费 = (成功率*指导价 + 逃逸率*逃逸价格或白板价格) * 98% - 1个初始物品成本 - 材料费用
+        材料费用 + 总工时费 + 1个初始物品成本 = (成功率*指导价 + 逃逸率*逃逸价格或白板价格) * 95%
+        因此 总工时费 = (成功率*指导价 + 逃逸率*逃逸价格或白板价格) * 95% - 1个初始物品成本 - 材料费用
         每小时的工时费 = 总工时费  / actions * actionsPH
      */
 
@@ -311,8 +311,8 @@ const results = computed(() => {
       hourlyCostFormatted: Format.money(hourlyCost)
     })
   }
-  console.timeEnd('[超级强化] results')
-  console.log('[超级强化] #' + _resultsRunCount, '强化等级:', enhanceLevel, '行数:', result.length)
+  console.timeEnd("[超级强化] results")
+  console.log(`[超级强化] #${_resultsRunCount}`, "强化等级:", enhanceLevel, "行数:", result.length)
   return result
 })
 
@@ -766,11 +766,9 @@ watch(menuVisible, (value) => {
                 </div>
                 <el-input-number
                   class="w-120px"
-                  v-model="marketTaxRate"
-                  :step="2"
-                  :step-strictly="true"
+                  v-model="enhancerStore.advancedConfig.taxRate"
+                  :step="1"
                   :min="0"
-                  :max="2"
                   controls-position="right"
                   :controls="true"
                   :placeholder="defaultConfig.taxRate.toString()"
@@ -815,6 +813,7 @@ watch(menuVisible, (value) => {
                   :max="2"
                   controls-position="right"
                   :controls="true"
+                  disabled
                 />
               </div>
             </el-tab-pane>
@@ -1041,11 +1040,11 @@ watch(menuVisible, (value) => {
                 <template #content>
                   总成本 = 材料费用 + 工时费 + 1个初始物品成本
                   <br>
-                  总收入 = (成功率*指导价 + 逃逸率*逃逸价格或白板价格) * 98%
+                  总收入 = (成功率*指导价 + 逃逸率*逃逸价格或白板价格) * 95%
                   <br>
                   总成本 = 总收入
                   <br>
-                  ∴ 指导价 = (总成本 / 98% - 逃逸率*逃逸价格或白板价格) / 成功率
+                  ∴ 指导价 = (总成本 / 95% - 逃逸率*逃逸价格或白板价格) / 成功率
                 </template>
                 <el-icon>
                   <Warning />

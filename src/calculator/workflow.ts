@@ -2,12 +2,12 @@ import type { Arrayable } from "unocss"
 import type { Ingredient, IngredientWithPrice, Product, ProductWithPrice } from "."
 import type { StorageCalculatorItem } from "@/pinia/stores/favorite"
 import * as Format from "@@/utils/format"
-import { getTrans } from "@/locales"
+import { SELL_TAX_FACTOR } from "@/common/constants/market"
 
+import { getTrans } from "@/locales"
 import Calculator from "."
 import { EnhanceCalculator } from "./enhance"
 import { getCalculatorInstance } from "./utils"
-import { SELL_TAX_FACTOR } from "@/common/constants/market"
 
 export class WorkflowCalculator extends Calculator {
   get ingredientList(): Ingredient[] {
@@ -48,7 +48,7 @@ export class WorkflowCalculator extends Calculator {
   /**
    * configs为工作流顺序排列
    */
-  constructor(configs: Arrayable<StorageCalculatorItem>[], project: string, sellTaxFactor: number = 0.98, crossStepBalance: boolean = false) {
+  constructor(configs: Arrayable<StorageCalculatorItem>[], project: string, sellTaxFactor: number = SELL_TAX_FACTOR, crossStepBalance: boolean = false) {
     let last = configs[configs.length - 1]
     if (Array.isArray(last)) {
       last = last[0]
