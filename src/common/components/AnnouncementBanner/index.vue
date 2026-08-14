@@ -6,7 +6,8 @@ const { t } = useI18n()
 const visible = ref(false)
 
 onMounted(() => {
-  visible.value = shouldShowAnnouncement()
+  // URL 带 ?announcement 时强制弹出，用于预览公告效果
+  visible.value = shouldShowAnnouncement() || new URLSearchParams(window.location.search).has("announcement")
 })
 
 function handleClose() {
@@ -19,9 +20,6 @@ function handleClose() {
   <Transition name="modal-fade">
     <div v-if="visible" class="announcement-overlay" @click.self="handleClose">
       <div class="announcement-modal">
-        <div class="announcement-icon">
-          🎉
-        </div>
         <div class="announcement-text">
           <span class="announcement-title">{{ t(announcementConfig.message.title) }}</span>
           <span class="announcement-message">{{ t(announcementConfig.message.content) }}</span>
@@ -33,7 +31,6 @@ function handleClose() {
             class="announcement-link"
             @click="handleClose"
           >
-            <span class="link-icon">⭐</span>
             {{ announcementConfig.link.text }}
             <span class="link-arrow">→</span>
           </a>
@@ -55,70 +52,69 @@ function handleClose() {
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow-y: auto;
+  padding: 24px 0;
 }
 
 .announcement-modal {
   position: relative;
-  background: #ffffff;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color);
   border-radius: 12px;
-  padding: 40px 32px 32px;
-  max-width: 420px;
+  padding: 32px 32px 28px;
+  max-width: 520px;
   width: 90%;
   text-align: center;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-  color: #333;
-}
-
-.announcement-icon {
-  font-size: 48px;
-  margin-bottom: 16px;
+  color: var(--el-text-color-primary);
 }
 
 .announcement-text {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
 }
 
 .announcement-title {
   font-weight: 700;
   font-size: 20px;
-  color: #667eea;
+  color: var(--el-color-primary);
 }
 
 .announcement-message {
   font-size: 14px;
-  color: #666;
-  line-height: 1.6;
+  color: var(--el-text-color-regular);
+  line-height: 1.8;
+  white-space: pre-line;
+  text-align: left;
 }
 
 .announcement-link {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  color: #ffffff;
+  gap: 6px;
+  color: var(--el-text-color-primary);
   text-decoration: none;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 8px 24px;
-  border-radius: 8px;
-  font-weight: 600;
+  background: transparent;
+  border: 1px solid var(--el-border-color);
+  padding: 6px 22px;
+  border-radius: 6px;
+  font-weight: 500;
   font-size: 14px;
-  transition: all 0.25s ease;
-  margin-top: 8px;
+  transition:
+    color 0.2s ease,
+    border-color 0.2s ease;
+  margin-top: 4px;
 
   &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-  }
-
-  .link-icon {
-    font-size: 14px;
+    color: var(--el-color-primary);
+    border-color: var(--el-color-primary);
   }
 
   .link-arrow {
     font-size: 14px;
-    transition: transform 0.25s ease;
+    transition: transform 0.2s ease;
   }
 
   &:hover .link-arrow {
@@ -130,9 +126,9 @@ function handleClose() {
   position: absolute;
   top: 12px;
   right: 12px;
-  background: #f0f0f0;
+  background: var(--el-fill-color-light);
   border: none;
-  color: #999;
+  color: var(--el-text-color-secondary);
   width: 28px;
   height: 28px;
   border-radius: 50%;
@@ -146,8 +142,8 @@ function handleClose() {
   line-height: 1;
 
   &:hover {
-    background: #e0e0e0;
-    color: #333;
+    background: var(--el-fill-color);
+    color: var(--el-text-color-primary);
   }
 }
 

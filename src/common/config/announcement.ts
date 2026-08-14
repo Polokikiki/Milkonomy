@@ -22,10 +22,21 @@ export interface AnnouncementConfig {
 
 export const announcementConfig: AnnouncementConfig = {
   enabled: true,
-  id: "v2.2.3-moo-card",
+  id: "v2.4.0-tax-5pct",
   message: {
-    title: "v2.2.3 更新公告",
-    content: "哞卡社区 Buff / 数据导出插件同步 / 脚本未安装通知 / 打赏：感谢 SukiSukiDaiSuki（微信 ¥5.2）、Blue（¥188.88）的支持！"
+    title: "v2.4.0 更新公告",
+    content: [
+      "一、市场税率调整",
+      "1. 市场卖出税率由 2% 调整为 5%（税后因子 0.98 → 0.95）。",
+      "2. 全链路同步：主计算器、强化分解、超级强化、排行榜、收藏夹五条计算路径统一应用新税率。",
+      "",
+      "二、强化页面 UI 调整",
+      "1. 强化分解 / 超级强化页的「税率」输入框已锁定为 5%（市场税率不再可配置，避免与全局常量冲突）。",
+      "2. 修复超级强化页「溢价率」输入框绑定错误：原绑定指向市场税率，已改为真正的溢价率字段。",
+      "3. 修复税率输入框残留 max=2 导致显示被钳制为 2% 的问题；贤者计算页税率同步补齐为 5%，旧配置自动迁移。",
+      "4. 价格档位跟随游戏补丁细化：加减价档位增量缩小至原来的 1/10（如 1000 金物品 +1 档 = +5）。",
+      "5. 修复强化分解 / 超级强化页切换预设后计算结果不刷新的问题。"
+    ].join("\n")
   },
   link: {
     url: "https://polokikiki.github.io/Milkonomy/#/changelog",

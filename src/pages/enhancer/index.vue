@@ -925,6 +925,9 @@ const results = computed(() => {
     return []
   }
 
+  // 预设依赖：计算器经 getBuffOf 等模块级变量读预设，Vue 追踪不到，显式读一次让预设切换能触发重算
+  const playerConfig = usePlayerStore().config
+
   console.time("[强化分解] results")
   const result = []
   const ignoreTax = !!enhancerStore.config.ignoreTax
@@ -983,7 +986,7 @@ const results = computed(() => {
     })
   }
   console.timeEnd("[强化分解] results")
-  console.log(`[强化分解] #${_resultsRunCount}`, "强化等级:", enhanceLevel, "行数:", result.length)
+  console.log(`[强化分解] #${_resultsRunCount}`, "强化等级:", enhanceLevel, "预设:", playerConfig.name, "行数:", result.length)
   return result
 })
 
@@ -1353,10 +1356,10 @@ watch(menuVisible, (value) => {
                 <el-input-number
                   class="w-120px"
                   v-model="enhancerStore.config.taxRate"
-                  :step="2"
+                  :step="5"
                   :step-strictly="true"
                   :min="0"
-                  :max="2"
+                  :max="5"
                   controls-position="right"
                   :placeholder="defaultConfig.taxRate.toString()"
                 />
@@ -1394,10 +1397,10 @@ watch(menuVisible, (value) => {
                   class="w-full"
                   style="width: 100%"
                   v-model="marketTaxRate"
-                  :step="2"
+                  :step="5"
                   :step-strictly="true"
                   :min="0"
-                  :max="2"
+                  :max="5"
                   controls-position="right"
                   :controls="true"
                   disabled

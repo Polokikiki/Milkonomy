@@ -2,8 +2,8 @@ import type { EnhancelateResult } from "@/calculator/enhance"
 import type { AchievementTierDetail, ActionDetail, CommunityBuffDetail, DropTableItem, GameData, ItemDetail, PersonalBuffDetail } from "~/game"
 import type { MarketData, MarketItemPrice } from "~/market"
 import deepFreeze from "deep-freeze-strict"
-import { COIN_HRID, PriceStatus, useGameStoreOutside } from "@/pinia/stores/game"
 import { SHOP_FIXED_PRICES } from "@/common/config"
+import { COIN_HRID, PriceStatus, useGameStoreOutside } from "@/pinia/stores/game"
 
 // 把Proxy扒下来，提高性能
 const game = {
@@ -111,21 +111,20 @@ function convertPriceOfStatus(price: MarketItemPrice, buyStatus: PriceStatus, se
 
 const priceStep = [
   [0, 1],
-  [50, 2],
-  [100, 5],
-  [300, 10]
-  // [500,20],
-  // [1000,50]
-  // ...
+  [500, 2],
+  [1000, 5],
+  [3000, 10]
 ]
 /**
- * 举例：
- * priceStepOf(300,true) = 310
- * priceStepOf(300,false) = 295
- * priceStepOf(1000,true) = 1050
- * priceStepOf(1000,false) = 980
- * priceStepOf(100000,true) = 105000
- * priceStepOf(100000,false) = 98000
+ * 举例（2026-08 游戏补丁后价格增量细化至原来的 1/10）：
+ * priceStepOf(300,true) = 301
+ * priceStepOf(300,false) = 299
+ * priceStepOf(570,true) = 572
+ * priceStepOf(570,false) = 568
+ * priceStepOf(1000,true) = 1005
+ * priceStepOf(1000,false) = 998
+ * priceStepOf(100000,true) = 100500
+ * priceStepOf(100000,false) = 99800
  * @param price 原价
  * @param high true加价, false减价
  */
@@ -133,9 +132,9 @@ export function priceStepOf(price: number, high: boolean = true) {
   if (price <= 0) {
     return -1
   }
-  // 先将price按十进制转为0~300的范围
+  // 先将price按十进制转为0~3000的范围
   let dec = 0
-  while (price > 300) {
+  while (price > 3000) {
     price /= 10
     dec += 1
   }

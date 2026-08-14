@@ -84,6 +84,10 @@ const KEY_PREFIX = "enhancer-"
 function loadConfig(): EnhancerConfig {
   try {
     const cfg = JSON.parse(localStorage.getItem(`${KEY_PREFIX}config`) || "{}")
+    // 旧版市场税率为 2，迁移到 5（advancedConfig 的 taxRate 是溢价率，不迁移）
+    if (cfg.taxRate === 2) {
+      cfg.taxRate = 5
+    }
     return {
       ignoreTax: !!cfg.ignoreTax,
       ...cfg

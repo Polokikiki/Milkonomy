@@ -112,7 +112,8 @@ const search = ref("")
 const targetLevel = useMemory("philosopher-target-level", 18)
 const useBlessedInPhilosopher = useMemory("philosopher-use-blessed-in-philosopher", false)
 const hourlyRate = useMemory("philosopher-hourly-rate", 5000000)
-const taxRate = useMemory("philosopher-tax-rate", 2)
+const taxRate = useMemory("philosopher-tax-rate", 5)
+if (taxRate.value === 2) taxRate.value = 5
 const ignoreTax = useMemory("philosopher-ignore-tax", false)
 const currentItem = ref<CurrentItemState>({
   protection: {} as IngredientRow,
@@ -132,7 +133,7 @@ const equipmentList = computed(() => {
 })
 
 const marketTaxRate = computed<number>({
-  get: () => ignoreTax.value ? 0 : 2,
+  get: () => ignoreTax.value ? 0 : 5,
   set: (value: number) => {
     ignoreTax.value = value === 0
     taxRate.value = value
@@ -1016,8 +1017,8 @@ const planChildren = computed(() => {
               class="w-120px"
               v-model="marketTaxRate"
               :min="0"
-              :max="2"
-              :step="2"
+              :max="5"
+              :step="5"
               :step-strictly="true"
               controls-position="right"
             />
