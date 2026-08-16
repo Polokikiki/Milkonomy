@@ -24,6 +24,8 @@ const visible: Ref<boolean> = computed({
 const currentProductPriceConfigList = ref<Calculator["productPriceConfigList"]>([])
 const currentIngredientPriceConfigList = ref<Calculator["ingredientPriceConfigList"]>([])
 
+const priceMode = ref<"buy" | "sell" | "both">("both")
+
 watch(() => props.data, (row) => {
   currentIngredientPriceConfigList.value = []
   currentProductPriceConfigList.value = []
@@ -31,7 +33,21 @@ watch(() => props.data, (row) => {
     currentIngredientPriceConfigList.value = getPriceConfigList(row, "ingredient")
     currentProductPriceConfigList.value = getPriceConfigList(row, "product")
   }
+  const ingManual = currentIngredientPriceConfigList.value.some(item => item.manual)
+  const prodManual = currentProductPriceConfigList.value.some(item => item.manual)
+  priceMode.value = ingManual
+    ? (prodManual ? "both" : "buy")
+    : (prodManual ? "sell" : "both")
 }, { immediate: true })
+
+watch(priceMode, (mode) => {
+  // 隐藏侧的自定义价不再保留，避免保存了看不见的旧值
+  if (mode === "buy") {
+    currentProductPriceConfigList.value.forEach(row => row.manual = false)
+  } else if (mode === "sell") {
+    currentIngredientPriceConfigList.value.forEach(row => row.manual = false)
+  }
+})
 
 function getPriceConfigList(row: Calculator, type: "product" | "ingredient") {
   return row[`${type}ListWithPrice`].map((item, i) => {
@@ -62,8 +78,22 @@ const { t } = useI18n()
 
 <template>
   <el-dialog v-model="visible" :show-close="false" width="80%">
+    <div class="mb-2 flex items-center">
+      <span class="mr-2">{{ t('模式') }}</span>
+      <el-radio-group v-model="priceMode" size="small">
+        <el-radio-button label="buy">
+          {{ t('仅买') }}
+        </el-radio-button>
+        <el-radio-button label="sell">
+          {{ t('仅卖') }}
+        </el-radio-button>
+        <el-radio-button label="both">
+          {{ t('自由') }}
+        </el-radio-button>
+      </el-radio-group>
+    </div>
     <el-row :gutter="20">
-      <el-col :xs="24" :sm="24" :md="24" :lg="24" :xl="12">
+      <el-col v-if="priceMode !== 'sell'" :xs="24" :sm="24" :md="24" :lg="24" :xl="12">
         <el-card>
           <el-table :data="currentIngredientPriceConfigList">
             <el-table-column width="54">
@@ -97,7 +127,7 @@ const { t } = useI18n()
           </el-table>
         </el-card>
       </el-col>
-      <el-col :xs="24" :sm="24" :md="24" :lg="24" :xl="12">
+      <el-col v-if="priceMode !== 'buy'" :xs="24" :sm="24" :md="24" :lg="24" :xl="12">
         <el-card>
           <el-table :data="currentProductPriceConfigList">
             <el-table-column prop="name" width="54">

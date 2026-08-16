@@ -4,7 +4,6 @@ import type { AchievementTier, Action, CommunityBuff, Equipment, ItemDetail } fr
 import ItemIcon from "@@/components/ItemIcon/index.vue"
 import { Plus } from "@element-plus/icons-vue"
 import { ElMessageBox } from "element-plus"
-import { h } from "vue"
 import { getAchievementTierDetailOf, getCommunityBuffDetailOf, getPersonalBuffDetailOf } from "@/common/apis/game"
 import { getEquipmentListOf, getSealList, getSpecialEquipmentListOf, getTeaListOf, getToolListOf, setActionConfigApi } from "@/common/apis/player"
 import { useTheme } from "@/common/composables/useTheme"
@@ -46,6 +45,15 @@ function getBackEquipmentListOf(action: Action) {
   return getEquipmentListOf(action, "back")
     .filter(item => allowed.has(item.hrid))
     .sort((a, b) => a.itemLevel - b.itemLevel)
+}
+
+// 特殊装备：固定件（只有等级差异）与可选件（要挑不同物品）
+const FIXED_SPECIAL_TYPES = new Set(["off_hand", "head", "hands", "feet"])
+const SPECIAL_LABELS: Record<string, string> = {
+  neck: "项链",
+  earrings: "耳环",
+  ring: "戒指",
+  pouch: "袋子"
 }
 
 const playerStore = usePlayerStore()
@@ -476,15 +484,17 @@ async function onClipboardImport() {
     if (!text || !text.trim()) {
       try {
         text = await navigator.clipboard.readText()
-      } catch (_) {}
+      } catch {}
     }
 
     if (!text || !text.trim()) {
-      ElMessageBox.alert("<p>检测到未安装数据导出脚本。</p><p style=\"margin-top:8px\">📥 <a href=\"https://home.greasyfork.org.cn/zh-hans/info#/zh-CN/scripts/587094/detail\" target=\"_blank\">安装脚本</a></p><p style=\"margin-top:8px;color:#909399\">安装后刷新 MilkyWay Idle 页面，再回利润网点「一键导入」。</p>", t("未安装脚本"), { dangerouslyUseHTMLString: true, confirmButtonText: t("知道了") }); return
+      ElMessageBox.alert("<p>检测到未安装数据导出脚本。</p><p style=\"margin-top:8px\">📥 <a href=\"https://home.greasyfork.org.cn/zh-hans/info#/zh-CN/scripts/587094/detail\" target=\"_blank\">安装脚本</a></p><p style=\"margin-top:8px;color:#909399\">安装后刷新 MilkyWay Idle 页面，再回利润网点「一键导入」。</p>", t("未安装脚本"), { dangerouslyUseHTMLString: true, confirmButtonText: t("知道了") })
+      return
     }
     const data = JSON.parse(text.trim())
     if (!data.skills || data.version !== 1) {
-      ElMessage.error(t("数据格式无效")); return
+      ElMessage.error(t("数据格式无效"))
+      return
     }
     processImportData(text.trim(), false)
     ElMessage.success(t("已导入"))
@@ -492,87 +502,6 @@ async function onClipboardImport() {
     ElMessage.error(t("导入失败"))
     console.error(e)
   }
-}
-
-function onImportBattleSim() {
-  let textareaValue = ""
-  let shouldMerge = false
-  let mergeTargetIndex = playerStore.presetIndex
-
-  const presetOptions = playerStore.presets.map((p, i) => {
-    return h("option", { value: String(i), selected: i === mergeTargetIndex }, p.name || (`预设 ${i + 1}`))
-  })
-
-  const msgVNode = h("div", { style: "display:flex;flex-direction:column;gap:8px;width:100%" }, [
-    h("span", { style: "font-size:14px" }, t("请粘贴导出的JSON数据")),
-    h("textarea", {
-      style: "width:100%;min-height:130px;max-height:170px;border:1px solid var(--el-border-color,#dcdfe6);border-radius:4px;padding:8px;font-size:13px;resize:vertical;background:var(--el-fill-color-blank,#fff);color:var(--el-text-color-primary,#303133);font-family:monospace;box-sizing:border-box",
-      placeholder: "{\"version\":1,...}",
-      onInput: (e: Event) => {
-        textareaValue = (e.target as HTMLTextAreaElement).value
-      }
-    }),
-    h("div", { style: "display:flex;align-items:center;gap:4px" }, [
-      h("a", {
-        href: "https://home.greasyfork.org.cn/zh-hans/info#/zh-CN/scripts/587094/detail",
-        target: "_blank",
-        style: "font-size:12px;color:var(--el-color-primary,#409eff);text-decoration:none;white-space:nowrap"
-      }, t("Milkonomy Data Exporter 脚本安装")),
-      h("span", { style: "font-size:12px;color:var(--el-text-color-secondary,#909399);white-space:nowrap" }, ` : ${t("快速复制生活数据")}`)
-    ]),
-    h("div", { style: "display:flex;align-items:center;gap:6px;margin-top:4px;flex-wrap:wrap" }, [
-      h("input", {
-        type: "checkbox",
-        id: "import-merge-check",
-        style: "cursor:pointer;accent-color:#16ab1b",
-        onChange: (e: Event) => {
-          shouldMerge = (e.target as HTMLInputElement).checked
-        }
-      }),
-      h("label", {
-        for: "import-merge-check",
-        style: "cursor:pointer;font-size:13px;color:var(--el-text-color-regular);white-space:nowrap"
-      }, t("数据升级")),
-      h("select", {
-        style: "border:1px solid var(--el-border-color,#dcdfe6);border-radius:4px;padding:2px 6px;font-size:13px;background:#222;color:#eee;max-width:160px",
-        onChange: (e: Event) => {
-          mergeTargetIndex = Number((e.target as HTMLSelectElement).value)
-        }
-      }, presetOptions),
-      h("span", {
-        style: "color:var(--el-text-color-secondary,#909399);font-size:12px;cursor:help",
-        title: t("与选中预设对比，取两者最高等级（装备/技能/房子/神龛）。社区Buff使用最新数据。不勾选则创建新预设。")
-      }, "ⓘ")
-    ])
-  ])
-
-  ElMessageBox({
-    title: t("导入生活数据"),
-    message: msgVNode,
-    showCancelButton: true,
-    confirmButtonText: t("确定"),
-    cancelButtonText: t("取消"),
-    customClass: "import-data-dialog",
-    beforeClose: (action: string, _instance: any, done: () => void) => {
-      if (action === "confirm") {
-        const value = textareaValue.trim()
-        if (!value) {
-          ElMessage.warning(t("请输入数据"))
-          return
-        }
-        try {
-          JSON.parse(value)
-        } catch {
-          ElMessage.error(t("请输入正确的JSON格式"))
-          return
-        }
-        done()
-        processImportData(value, shouldMerge, shouldMerge ? mergeTargetIndex : undefined)
-        return
-      }
-      done()
-    }
-  }).catch(() => {})
 }
 
 function processImportData(jsonStr: string, shouldMerge: boolean, mergeTargetIndex?: number) {
@@ -637,25 +566,29 @@ function processImportData(jsonStr: string, shouldMerge: boolean, mergeTargetInd
         if (eqType === "body") {
           for (const action of ACTION_LIST) {
             if (doesEquipmentApply(item.hrid, action)) {
-              bodyByAction[action] ??= []; bodyByAction[action].push(item)
+              bodyByAction[action] ??= []
+              bodyByAction[action].push(item)
             }
           }
         } else if (eqType === "legs") {
           for (const action of ACTION_LIST) {
             if (doesEquipmentApply(item.hrid, action)) {
-              legsByAction[action] ??= []; legsByAction[action].push(item)
+              legsByAction[action] ??= []
+              legsByAction[action].push(item)
             }
           }
         } else if (eqType === "charm") {
           for (const action of ACTION_LIST) {
             if (doesEquipmentApply(item.hrid, action)) {
-              charmByAction[action] ??= []; charmByAction[action].push(item)
+              charmByAction[action] ??= []
+              charmByAction[action].push(item)
             }
           }
         } else if (eqType === "back") {
           for (const action of ACTION_LIST) {
             if (doesEquipmentApply(item.hrid, action)) {
-              backByAction[action] ??= []; backByAction[action].push(item)
+              backByAction[action] ??= []
+              backByAction[action].push(item)
             }
           }
         }
@@ -813,7 +746,8 @@ function processImportData(jsonStr: string, shouldMerge: boolean, mergeTargetInd
         const defaultItem = defaultConfig.actionConfigMap.get(action)!
         const toolLoc = `${action}_tool`
         const toolData = equipMap[toolLoc]
-        const bodyData = equipMap.body; const capeData = equipMap.back
+        const bodyData = equipMap.body
+        const capeData = equipMap.back
         const legsData = equipMap.legs
         const charmData = equipMap.charm || equipMap.amulet
 
@@ -1179,122 +1113,180 @@ function getAchievementEffect(type: AchievementTier) {
             </el-button>
           </div>
         </template>
-        <el-table :data="actionList.filter(item => actions ? actions.includes(item.action) : true)">
-          <el-table-column prop="name" width="54">
-            <template #default="{ row }">
-              <ItemIcon :hrid="`/actions/${row.action}`" />
+        <div class="hide-on-mobile">
+          <el-table :data="actionList.filter(item => actions ? actions.includes(item.action) : true)">
+            <el-table-column prop="name" width="54">
+              <template #default="{ row }">
+                <ItemIcon :hrid="`/actions/${row.action}`" />
+              </template>
+            </el-table-column>
+            <el-table-column :label="t('Action')" width="125" align="center">
+              <template #default="{ row }">
+                {{ t(row.action) }}
+              </template>
+            </el-table-column>
+            <el-table-column :label="t('技能等级')" width="85" align="center">
+              <template #default="{ row }">
+                <el-input-number v-model="row.playerLevel" :min="1" :max="200" style="width: 60px" :controls="false" />
+              </template>
+            </el-table-column>
+            <el-table-column :label="t('房子等级')" width="85" align="center">
+              <template #default="{ row }">
+                <el-input-number v-model="row.houseLevel" :min="0" :max="8" style="width: 60px" :controls="false" />
+              </template>
+            </el-table-column>
+            <el-table-column :label="t('工具')" align="center" min-width="105">
+              <template #default="{ row }">
+                <el-select style="width:80px" v-model="row.tool.hrid" :placeholder="t('工具')" clearable>
+                  <el-option v-for="item in getToolListOf(row.action)" :key="item.hrid" :label="item.name" :value="item.hrid">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                      <ItemIcon :hrid="item.hrid" />
+                      <div> {{ item.name }} </div>
+                    </div>
+                  </el-option>
+                  <template #label>
+                    <ItemIcon style="margin-top: 4px;" :hrid="row.tool.hrid" />
+                  </template>
+                </el-select>
+                &nbsp;+&nbsp;
+                <el-input-number v-model="row.tool.enhanceLevel" :min="0" :max="20" style="width: 60px" :controls="false" />
+              </template>
+            </el-table-column>
+            <el-table-column :label="t('身体')" align="center" min-width="105">
+              <template #default="{ row }">
+                <el-select style="width:80px" v-model="row.body.hrid" :placeholder="t('身体')" clearable>
+                  <el-option v-for="item in getEquipmentListOf(row.action, 'body')" :key="item.hrid" :label="item.name" :value="item.hrid">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                      <ItemIcon :hrid="item.hrid" />
+                      <div> {{ item.name }} </div>
+                    </div>
+                  </el-option>
+                  <template #label>
+                    <ItemIcon style="margin-top: 4px;" :hrid="row.body.hrid" />
+                  </template>
+                </el-select>
+                &nbsp;+&nbsp;
+                <el-input-number v-model="row.body.enhanceLevel" :min="0" :max="20" style="width: 60px" :controls="false" />
+              </template>
+            </el-table-column>
+            <el-table-column :label="t('腿部')" align="center" min-width="105">
+              <template #default="{ row }">
+                <el-select style="width:80px" v-model="row.legs.hrid" :placeholder="t('腿部')" clearable>
+                  <el-option v-for="item in getEquipmentListOf(row.action, 'legs')" :key="item.hrid" :label="item.name" :value="item.hrid">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                      <ItemIcon :hrid="item.hrid" />
+                      <div> {{ item.name }} </div>
+                    </div>
+                  </el-option>
+                  <template #label>
+                    <ItemIcon style="margin-top: 4px;" :hrid="row.legs.hrid" />
+                  </template>
+                </el-select>
+                &nbsp;+&nbsp;
+                <el-input-number v-model="row.legs.enhanceLevel" :min="0" :max="20" style="width: 60px" :controls="false" />
+              </template>
+            </el-table-column>
+            <el-table-column :label="t('背部')" align="center" min-width="105">
+              <template #default="{ row }">
+                <el-select style="width:80px" v-model="row.back.hrid" :placeholder="t('背部')" clearable>
+                  <el-option v-for="item in getBackEquipmentListOf(row.action)" :key="item.hrid" :label="item.name" :value="item.hrid">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                      <ItemIcon :hrid="item.hrid" />
+                      <div> {{ item.name }} </div>
+                    </div>
+                  </el-option>
+                  <template #label>
+                    <ItemIcon style="margin-top: 4px;" :hrid="row.back.hrid" />
+                  </template>
+                </el-select>
+                &nbsp;+&nbsp;
+                <el-input-number v-model="row.back.enhanceLevel" :min="0" :max="20" style="width: 60px" :controls="false" />
+              </template>
+            </el-table-column>
+            <el-table-column :label="t('护符')" align="center" min-width="105">
+              <template #default="{ row }">
+                <el-select style="width:80px" v-model="row.charm.hrid" :placeholder="t('护符')" clearable>
+                  <el-option v-for="item in getEquipmentListOf(row.action, 'charm').sort((a, b) => a.itemLevel - b.itemLevel)" :key="item.hrid" :label="item.name" :value="item.hrid">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                      <ItemIcon :hrid="item.hrid" />
+                      <div> {{ item.name }} </div>
+                    </div>
+                  </el-option>
+                  <template #label>
+                    <ItemIcon style="margin-top: 4px;" :hrid="row.charm.hrid" />
+                  </template>
+                </el-select>
+                &nbsp;+&nbsp;
+                <el-input-number v-model="row.charm.enhanceLevel" :min="0" :max="20" style="width: 60px" :controls="false" />
+              </template>
+            </el-table-column>
+            <el-table-column :label="t('茶')" align="center" min-width="155">
+              <template #default="{ row }">
+                <el-checkbox-group v-model="row.tea" size="large" :max="3" class="tea-checkbox-group">
+                  <el-checkbox v-for="tea in getTeaListOf(row.action)" :key="tea.hrid" :value="tea.hrid" border>
+                    <ItemIcon :hrid="tea.hrid" />
+                  </el-checkbox>
+                </el-checkbox-group>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
+
+        <!-- 移动端：10 列表格放不下，改为按动作折叠的堆叠表单 -->
+        <el-collapse class="show-only-on-mobile">
+          <el-collapse-item
+            v-for="row in actionList.filter(item => actions ? actions.includes(item.action) : true)"
+            :key="`m-${row.action}`"
+            :name="row.action"
+          >
+            <template #title>
+              <div class="flex items-center gap-2 flex-wrap">
+                <ItemIcon :hrid="`/actions/${row.action}`" />
+                <span>{{ t(row.action) }}</span>
+                <span class="color-gray-500 font-size-12px">Lv.{{ row.playerLevel }}</span>
+                <div class="flex items-center gap-1">
+                  <!-- 工具/上衣/下衣/背部/护符：有装备才显示图标，右上角角标为强化等级 -->
+                  <template v-for="slot in (['tool', 'body', 'legs', 'back', 'charm'] as const)" :key="slot">
+                    <span v-if="row[slot]?.hrid" class="mini-equip">
+                      <ItemIcon :hrid="row[slot].hrid" :width="22" :height="22" />
+                      <span v-if="(row[slot]?.enhanceLevel ?? 0) > 0" class="mini-equip-level">{{ row[slot].enhanceLevel }}</span>
+                    </span>
+                  </template>
+                </div>
+              </div>
             </template>
-          </el-table-column>
-          <el-table-column :label="t('Action')" width="125" align="center">
-            <template #default="{ row }">
-              {{ t(row.action) }}
-            </template>
-          </el-table-column>
-          <el-table-column :label="t('技能等级')" width="85" align="center">
-            <template #default="{ row }">
-              <el-input-number v-model="row.playerLevel" :min="1" :max="200" style="width: 60px" :controls="false" />
-            </template>
-          </el-table-column>
-          <el-table-column :label="t('房子等级')" width="85" align="center">
-            <template #default="{ row }">
-              <el-input-number v-model="row.houseLevel" :min="0" :max="8" style="width: 60px" :controls="false" />
-            </template>
-          </el-table-column>
-          <el-table-column :label="t('工具')" align="center" min-width="105">
-            <template #default="{ row }">
-              <el-select style="width:80px" v-model="row.tool.hrid" :placeholder="t('工具')" clearable>
-                <el-option v-for="item in getToolListOf(row.action)" :key="item.hrid" :label="item.name" :value="item.hrid">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="mobile-config-label">{{ t('技能等级') }}</span>
+              <el-input-number v-model="row.playerLevel" :min="1" :max="200" style="width: 70px" :controls="false" />
+              <span class="mobile-config-label">{{ t('房子等级') }}</span>
+              <el-input-number v-model="row.houseLevel" :min="0" :max="8" style="width: 70px" :controls="false" />
+            </div>
+            <div v-for="slot in (['tool', 'body', 'legs', 'back', 'charm'] as const)" :key="slot" class="flex items-center gap-2 flex-wrap mt-2">
+              <span class="mobile-config-label">{{ t(slot === 'tool' ? '工具' : slot === 'body' ? '身体' : slot === 'legs' ? '腿部' : slot === 'back' ? '背部' : '护符') }}</span>
+              <el-select v-model="row[slot].hrid" style="flex: 1; min-width: 130px" :placeholder="t('工具')" clearable>
+                <el-option
+                  v-for="item in slot === 'tool' ? getToolListOf(row.action) : slot === 'back' ? getBackEquipmentListOf(row.action) : getEquipmentListOf(row.action, slot)"
+                  :key="item.hrid" :label="item.name" :value="item.hrid"
+                >
                   <div style="display:flex;align-items:center;gap:10px;">
                     <ItemIcon :hrid="item.hrid" />
                     <div> {{ item.name }} </div>
                   </div>
                 </el-option>
-                <template #label>
-                  <ItemIcon style="margin-top: 4px;" :hrid="row.tool.hrid" />
-                </template>
               </el-select>
-              &nbsp;+&nbsp;
-              <el-input-number v-model="row.tool.enhanceLevel" :min="0" :max="20" style="width: 60px" :controls="false" />
-            </template>
-          </el-table-column>
-          <el-table-column :label="t('身体')" align="center" min-width="105">
-            <template #default="{ row }">
-              <el-select style="width:80px" v-model="row.body.hrid" :placeholder="t('身体')" clearable>
-                <el-option v-for="item in getEquipmentListOf(row.action, 'body')" :key="item.hrid" :label="item.name" :value="item.hrid">
-                  <div style="display:flex;align-items:center;gap:10px;">
-                    <ItemIcon :hrid="item.hrid" />
-                    <div> {{ item.name }} </div>
-                  </div>
-                </el-option>
-                <template #label>
-                  <ItemIcon style="margin-top: 4px;" :hrid="row.body.hrid" />
-                </template>
-              </el-select>
-              &nbsp;+&nbsp;
-              <el-input-number v-model="row.body.enhanceLevel" :min="0" :max="20" style="width: 60px" :controls="false" />
-            </template>
-          </el-table-column>
-          <el-table-column :label="t('腿部')" align="center" min-width="105">
-            <template #default="{ row }">
-              <el-select style="width:80px" v-model="row.legs.hrid" :placeholder="t('腿部')" clearable>
-                <el-option v-for="item in getEquipmentListOf(row.action, 'legs')" :key="item.hrid" :label="item.name" :value="item.hrid">
-                  <div style="display:flex;align-items:center;gap:10px;">
-                    <ItemIcon :hrid="item.hrid" />
-                    <div> {{ item.name }} </div>
-                  </div>
-                </el-option>
-                <template #label>
-                  <ItemIcon style="margin-top: 4px;" :hrid="row.legs.hrid" />
-                </template>
-              </el-select>
-              &nbsp;+&nbsp;
-              <el-input-number v-model="row.legs.enhanceLevel" :min="0" :max="20" style="width: 60px" :controls="false" />
-            </template>
-          </el-table-column>
-          <el-table-column :label="t('背部')" align="center" min-width="105">
-            <template #default="{ row }">
-              <el-select style="width:80px" v-model="row.back.hrid" :placeholder="t('背部')" clearable>
-                <el-option v-for="item in getBackEquipmentListOf(row.action)" :key="item.hrid" :label="item.name" :value="item.hrid">
-                  <div style="display:flex;align-items:center;gap:10px;">
-                    <ItemIcon :hrid="item.hrid" />
-                    <div> {{ item.name }} </div>
-                  </div>
-                </el-option>
-                <template #label>
-                  <ItemIcon style="margin-top: 4px;" :hrid="row.back.hrid" />
-                </template>
-              </el-select>
-              &nbsp;+&nbsp;
-              <el-input-number v-model="row.back.enhanceLevel" :min="0" :max="20" style="width: 60px" :controls="false" />
-            </template>
-          </el-table-column>
-          <el-table-column :label="t('护符')" align="center" min-width="105">
-            <template #default="{ row }">
-              <el-select style="width:80px" v-model="row.charm.hrid" :placeholder="t('护符')" clearable>
-                <el-option v-for="item in getEquipmentListOf(row.action, 'charm').sort((a, b) => a.itemLevel - b.itemLevel)" :key="item.hrid" :label="item.name" :value="item.hrid">
-                  <div style="display:flex;align-items:center;gap:10px;">
-                    <ItemIcon :hrid="item.hrid" />
-                    <div> {{ item.name }} </div>
-                  </div>
-                </el-option>
-                <template #label>
-                  <ItemIcon style="margin-top: 4px;" :hrid="row.charm.hrid" />
-                </template>
-              </el-select>
-              &nbsp;+&nbsp;
-              <el-input-number v-model="row.charm.enhanceLevel" :min="0" :max="20" style="width: 60px" :controls="false" />
-            </template>
-          </el-table-column>
-          <el-table-column :label="t('茶')" align="center" min-width="155">
-            <template #default="{ row }">
+              <span>+</span>
+              <el-input-number v-model="row[slot].enhanceLevel" :min="0" :max="20" style="width: 70px" :controls="false" />
+            </div>
+            <div class="flex items-center gap-2 flex-wrap mt-2">
+              <span class="mobile-config-label">{{ t('茶') }}</span>
               <el-checkbox-group v-model="row.tea" size="large" :max="3" class="tea-checkbox-group">
                 <el-checkbox v-for="tea in getTeaListOf(row.action)" :key="tea.hrid" :value="tea.hrid" border>
                   <ItemIcon :hrid="tea.hrid" />
                 </el-checkbox>
               </el-checkbox-group>
-            </template>
-          </el-table-column>
-        </el-table>
+            </div>
+          </el-collapse-item>
+        </el-collapse>
       </el-card>
 
       <el-card class="mt-5">
@@ -1303,22 +1295,50 @@ function getAchievementEffect(type: AchievementTier) {
             {{ t('特殊装备') }}
           </div>
         </template>
-        <div class="buff-tofu-grid special-equip-grid">
-          <div class="buff-tofu" v-for="row in specialList.filter(item => equipments ? equipments.includes(item.type) : true)" :key="`special-${row.type}`">
-            <div class="buff-tofu-head" style="gap:6px">
-              <ItemIcon v-if="row.hrid" :hrid="row.hrid" style="flex-shrink:0" />
-              <span>{{ t(row.type.replace(/_/g, ' ').replace(/\b\w+\b/g, (word:any) => word.substring(0, 1).toUpperCase() + word.substring(1))) }}</span>
+        <!-- 固定件（只有等级差异）：图标行，点击弹层改等级；等级为 0 时暗淡加斜线 -->
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="color-gray-500 font-size-13px">{{ t('固定') }}:</span>
+          <el-popover
+            v-for="row in specialList.filter(item => FIXED_SPECIAL_TYPES.has(item.type) && (equipments ? equipments.includes(item.type as Equipment) : true))"
+            :key="`special-${row.type}`"
+            trigger="click"
+            :width="240"
+          >
+            <template #reference>
+              <span class="special-fixed-icon" :class="{ 'is-off': !((row.enhanceLevel ?? 0) > 0) }">
+                <ItemIcon v-if="row.hrid" :hrid="row.hrid" :width="34" :height="34" />
+                <span v-if="(row.enhanceLevel ?? 0) > 0" class="special-fixed-level">{{ row.enhanceLevel }}</span>
+              </span>
+            </template>
+            <div class="flex items-center gap-3">
+              <el-checkbox
+                :model-value="!((row.enhanceLevel ?? 0) > 0)"
+                @change="(v: any) => { if (v) row.enhanceLevel = 0 }"
+              >
+                {{ t('无') }}
+              </el-checkbox>
+              <el-input-number v-model="row.enhanceLevel" :min="0" :max="20" :controls="false" style="width: 70px" />
             </div>
-            <el-select style="width:100%" v-model="row.hrid" :placeholder="t(row.type.replace(/_/g, ' ').replace(/\\b\\w+\\b/g, (word:any) => word.substring(0, 1).toUpperCase() + word.substring(1)))" clearable>
-              <el-option v-for="item in getSpecialEquipmentListOf(row.type)" :key="item.hrid" :label="getTrans(item.name)" :value="item.hrid">
-                <div style="display:flex;align-items:center;gap:10px;">
-                  <ItemIcon :hrid="item.hrid" />
-                  <div> {{ getTrans(item.name) }} </div>
-                </div>
-              </el-option>
-            </el-select>
-            <el-input-number v-model="row.enhanceLevel" :min="0" :max="20" style="width: 100%" :controls="false" />
-          </div>
+          </el-popover>
+        </div>
+        <!-- 可选件（要挑不同物品）：标签 + 下拉 + 强化等级 -->
+        <div
+          v-for="row in specialList.filter(item => !FIXED_SPECIAL_TYPES.has(item.type) && (equipments ? equipments.includes(item.type as Equipment) : true))"
+          :key="`special-${row.type}`"
+          class="flex items-center gap-2 mt-2"
+          style="flex-wrap: nowrap"
+        >
+          <span class="mobile-config-label">{{ t(SPECIAL_LABELS[row.type] || row.type) }}</span>
+          <el-select v-model="row.hrid" style="flex: 1; min-width: 110px" :placeholder="t('无')" clearable>
+            <el-option v-for="item in getSpecialEquipmentListOf(row.type)" :key="item.hrid" :label="getTrans(item.name)" :value="item.hrid">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <ItemIcon :hrid="item.hrid" />
+                <div> {{ getTrans(item.name) }} </div>
+              </div>
+            </el-option>
+          </el-select>
+          <span>+</span>
+          <el-input-number v-model="row.enhanceLevel" :min="0" :max="20" style="width: 70px" :controls="false" />
         </div>
       </el-card>
 
@@ -1415,6 +1435,68 @@ function getAchievementEffect(type: AchievementTier) {
 </template>
 
 <style lang="scss" scoped>
+.mobile-config-label {
+  width: 56px;
+  flex-shrink: 0;
+  font-size: 13px;
+}
+
+// 折叠标题里的装备小图标 + 强化等级角标
+.mini-equip {
+  position: relative;
+  display: inline-flex;
+
+  .mini-equip-level {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    font-size: 10px;
+    line-height: 1;
+    font-weight: 600;
+    color: #e6a23c;
+    text-shadow: 0 0 2px var(--el-bg-color);
+  }
+}
+
+// 特殊装备固定件图标：等级为 0 时暗淡加斜线
+.special-fixed-icon {
+  position: relative;
+  display: inline-flex;
+  cursor: pointer;
+  padding: 2px;
+  border: 1px solid var(--el-border-color);
+  border-radius: 6px;
+
+  .special-fixed-level {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    font-size: 11px;
+    line-height: 1;
+    font-weight: 600;
+    color: #e6a23c;
+    text-shadow: 0 0 2px var(--el-bg-color);
+  }
+
+  &.is-off {
+    filter: grayscale(1) opacity(0.45);
+
+    // 斜线（对角线渐变实现，不加额外元素）
+    &::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        to top right,
+        transparent calc(50% - 1px),
+        var(--el-text-color-secondary) calc(50% - 1px),
+        var(--el-text-color-secondary) calc(50% + 1px),
+        transparent calc(50% + 1px)
+      );
+    }
+  }
+}
+
 :deep(.el-select__wrapper) {
   height: 38px;
 }
@@ -1560,12 +1642,17 @@ function getAchievementEffect(type: AchievementTier) {
 .seal-grid {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 6px;
 }
 
+// 封印紧凑化：横向小条（图标+名称+效果+勾选一行排布），消除大片空位
 .seal-grid .buff-tofu {
-  flex: 1;
-  min-width: 140px;
+  flex: 0 1 auto;
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+  padding: 4px 8px;
 }
 
 .special-equip-grid :deep(.el-select__wrapper) {

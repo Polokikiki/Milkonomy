@@ -20,12 +20,22 @@ const form = ref({
   }
 })
 
+const priceMode = ref<"buy" | "sell" | "both">("both")
+
 const refPopover = ref<InstanceType<typeof ElPopover> | null>(null)
 
 function onShow() {
   Object.assign(form.value.ask, props.data?.ask)
   Object.assign(form.value.bid, props.data?.bid)
+  priceMode.value = form.value.ask.manual
+    ? (form.value.bid.manual ? "both" : "buy")
+    : (form.value.bid.manual ? "sell" : "both")
 }
+
+watch(priceMode, (mode) => {
+  if (mode === "buy") form.value.bid.manual = false
+  else if (mode === "sell") form.value.ask.manual = false
+})
 function onConfirm() {
   setSinglePriceApi({ ...form.value, hrid: props.data!.hrid, level: props.data!.level })
   refPopover.value?.hide()
@@ -45,11 +55,24 @@ const { t } = useI18n()
       </div>
     </template>
     <el-form :model="form">
-      <el-form-item :label="t('买')">
+      <el-form-item :label="t('模式')">
+        <el-radio-group v-model="priceMode" size="small">
+          <el-radio-button label="buy">
+            {{ t('仅买') }}
+          </el-radio-button>
+          <el-radio-button label="sell">
+            {{ t('仅卖') }}
+          </el-radio-button>
+          <el-radio-button label="both">
+            {{ t('自由') }}
+          </el-radio-button>
+        </el-radio-group>
+      </el-form-item>
+      <el-form-item v-if="priceMode !== 'sell'" :label="t('买')">
         <el-switch v-model="form.ask.manual" :active-text="t('自定义')" :inactive-text="t('市场价')" inline-prompt style="--el-switch-off-color: #13ce66" />
         <el-input-number v-if="form.ask.manual" style="margin-left:10px" v-model="form.ask.manualPrice" :disabled="!form.ask.manual" :controls="false" />
       </el-form-item>
-      <el-form-item :label="t('卖')">
+      <el-form-item v-if="priceMode !== 'buy'" :label="t('卖')">
         <el-switch v-model="form.bid.manual" :active-text="t('自定义')" :inactive-text="t('市场价')" inline-prompt style="--el-switch-off-color: #13ce66" />
         <el-input-number v-if="form.bid.manual" style="margin-left:10px" v-model="form.bid.manualPrice" :disabled="!form.bid.manual" :controls="false" />
       </el-form-item>
