@@ -276,7 +276,6 @@ async function startNCompare() {
       const map: Record<string, Calculator> = {}
       for (const item of data.list) map[item.key] = item
       compareDataSets.value.push(map)
-      console.log(`[compare] 打野预设${pidx}(${ps.presets[pidx]?.name}) 拉取 ${data.list.length} 行，key 样例:`, data.list.slice(0, 3).map((i: Calculator) => i.key))
     }
   } catch (e) {
     console.error(e)
@@ -303,7 +302,6 @@ async function startNCompare() {
   for (const ds of compareDataSets.value) {
     for (const key of Object.keys(ds)) unionKeys.add(key)
   }
-  console.log("[compare] 打野各数据集行数:", compareDataSets.value.map(ds => Object.keys(ds).length), "| 并集 key 数:", unionKeys.size)
   paginationDataLD.currentPage = 1
   paginationDataLD.total = unionKeys.size
   isComparing.value = true
@@ -334,7 +332,6 @@ const compareUnionRows = computed<any[]>(() => {
   for (const row of rows) {
     for (const ds of compareDataSets.value) row._compareData.push(ds[row.key] || null)
   }
-  console.log("[compare] 打野并集行数:", rows.length, "| 首行 key:", rows[0]?.key, "| 首行各预设利润/h:", rows[0]?._compareData?.map((cd: Calculator | null) => cd?.result?.profitPHFormat ?? null))
   return rows
 })
 
