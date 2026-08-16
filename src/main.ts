@@ -12,6 +12,7 @@ import "normalize.css"
 import "nprogress/nprogress.css"
 import "element-plus/theme-chalk/dark/css-vars.css"
 import "@@/assets/styles/index.scss"
+import "@@/assets/styles/mobile.scss"
 import "virtual:uno.css"
 import { useGameStoreOutside } from "./pinia/stores/game"
 

@@ -59,7 +59,7 @@ const tipLineWidth = computed(() => !isTop.value ? "2px" : "0px")
     <el-scrollbar wrap-class="scrollbar-wrapper">
       <el-menu
         :default-active="activeMenu"
-        :collapse="isCollapse && !isTop"
+        :collapse="!isMobile && isCollapse && !isTop"
         :background-color="backgroundColor"
         :text-color="textColor"
         :active-text-color="activeTextColor"

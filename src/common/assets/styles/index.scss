@@ -69,6 +69,29 @@ body {
   box-sizing: border-box;
 }
 
+// 全站滚动条统一为 el-scrollbar 视觉（细圆角半透明，含 body/容器未覆盖到的内部滚动区）
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(144, 147, 153, 0.3) transparent;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  &::-webkit-scrollbar-thumb {
+    border-radius: 3px;
+    background-color: rgba(144, 147, 153, 0.3);
+
+    &:hover {
+      background-color: rgba(144, 147, 153, 0.5);
+    }
+  }
+  &::-webkit-scrollbar-track,
+  &::-webkit-scrollbar-corner {
+    background-color: transparent;
+  }
+}
+
 a,
 a:focus,
 a:hover {

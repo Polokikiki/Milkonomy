@@ -1,0 +1,87 @@
+// 移动端全站适配（≤768px）
+// 侧栏/顶栏由框架的 useDevice 自动切换 LeftMode，这里只处理内容区：
+// 按钮组溢出、表格拥挤、弹窗超宽、分页溢出、触控目标过小
+
+// 仅移动端显示（配对 .hide-on-mobile 使用）
+@media (min-width: 769px) {
+  .show-only-on-mobile {
+    display: none !important;
+  }
+}
+
+@media (max-width: 768px) {
+  // 页面容器留白收窄
+  .app-container {
+    padding: 8px;
+  }
+
+  // 多按钮行允许换行，消除横向溢出（不溢出时无视觉变化）
+  .flex.items-center {
+    flex-wrap: wrap;
+  }
+
+  // Element Plus 表格：紧凑化
+  .el-table {
+    font-size: 12px;
+
+    .el-table__cell {
+      padding: 4px 0;
+    }
+
+    // 树形/展开箭头触控目标放大（默认约 20px，手机上难点中）
+    .el-table__expand-icon {
+      min-width: 32px;
+      min-height: 32px;
+    }
+  }
+
+  // 弹窗：固定宽度（600px/800px）在手机上超出屏幕
+  .el-dialog {
+    max-width: 94vw;
+
+    .el-dialog__body {
+      padding: 10px 14px;
+    }
+
+    // 固定宽度输入框（如 w-300px）不超出弹窗
+    .el-input {
+      max-width: 100%;
+    }
+  }
+
+  // 显示/隐藏工具类：桌面表格 ↔ 移动折叠表单切换用
+  .hide-on-mobile {
+    display: none !important;
+  }
+
+  .el-message-box {
+    max-width: 92vw;
+  }
+
+  // 气泡确认/下拉浮层不超出视口
+  .el-popper {
+    max-width: 92vw;
+  }
+
+  // 分页器：允许换行并缩小
+  .el-pagination {
+    flex-wrap: wrap;
+    row-gap: 6px;
+    justify-content: center;
+
+    .el-pagination__jump,
+    .el-pagination__total {
+      display: none;
+    }
+  }
+
+  // 表单标签与控件在窄屏堆叠（固定 label-width 的表单）
+  .el-form:not(.el-form--inline) .el-form-item__label {
+    line-height: 24px;
+  }
+
+  // 卡片内边距收窄
+  .el-card__body {
+    padding: 10px;
+  }
+}
