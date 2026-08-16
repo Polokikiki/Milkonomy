@@ -181,7 +181,7 @@ export const publicRoutes: RouteRecordRaw[] = [
         meta: {
           title: t("更新日志"),
           elIcon: "Document",
-          affix: true
+          affix: false
         }
       }
     ]
