@@ -10,7 +10,7 @@ const { t } = locale.global
  * 在构建公开版本时，这些路由和对应的页面文件将不会被打包
  */
 export const privateRoutes: RouteRecordRaw[] = [
-    {
+  {
     path: "/",
     component: Layouts,
     redirect: "/enhancest",
@@ -38,6 +38,22 @@ export const privateRoutes: RouteRecordRaw[] = [
         name: "Manualchemy",
         meta: {
           title: t("制作炼金"),
+          svgIcon: "dashboard"
+        }
+      }
+    ]
+  },
+  {
+    path: "/",
+    component: Layouts,
+    redirect: "/alchemy-path",
+    children: [
+      {
+        path: "alchemy-path",
+        component: () => import("@/pages/alchemy-path/index.vue"),
+        name: "AlchemyPath",
+        meta: {
+          title: t("炼金路径"),
           svgIcon: "dashboard"
         }
       }
