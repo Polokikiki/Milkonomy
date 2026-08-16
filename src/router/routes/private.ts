@@ -172,6 +172,23 @@ export const privateRoutes: RouteRecordRaw[] = [
   {
     path: "/",
     component: Layouts,
+    redirect: "/changelog",
+    children: [
+      {
+        path: "changelog",
+        component: () => import("@/pages/changelog/index.vue"),
+        name: "Changelog",
+        meta: {
+          title: t("更新日志"),
+          elIcon: "Document",
+          affix: false
+        }
+      }
+    ]
+  },
+  {
+    path: "/",
+    component: Layouts,
     redirect: "/feedback",
     children: [
       {
