@@ -27,6 +27,33 @@ const equipmentList = computed(() => {
   )
 })
 
+// 批量精选
+const batchVisible = ref(false)
+const batchSearch = ref("")
+const batchSelected = ref<string[]>([])
+const batchEquipmentList = computed(() => {
+  return getEquipmentList().filter(item => t(item.name).toLocaleLowerCase().includes(batchSearch.value.toLowerCase())).sort((a, b) =>
+    a.sortIndex - b.sortIndex
+  )
+})
+watch(batchVisible, (val) => {
+  if (val) {
+    batchSearch.value = ""
+    batchSelected.value = [...enhancerStore.advancedFavorite]
+  }
+})
+function toggleBatch(hrid: string) {
+  const index = batchSelected.value.indexOf(hrid)
+  index === -1 ? batchSelected.value.push(hrid) : batchSelected.value.splice(index, 1)
+}
+function saveBatch() {
+  enhancerStore.setAdvancedFavorites(batchSelected.value)
+  batchVisible.value = false
+}
+function toggleAdvancedFavorite(hrid: string) {
+  enhancerStore.hasAdvancedFavorite(hrid) ? enhancerStore.removeAdvancedFavorite(hrid) : enhancerStore.addAdvancedFavorite(hrid)
+}
+
 const currentItem = ref<Item>({
   protection: {} as Ingredient,
   originPrice: 0
@@ -516,10 +543,10 @@ watch(menuVisible, (value) => {
   <div class="app-container">
     <ul v-show="menuVisible" class="contextmenu" :style="{ left: `${left}px`, top: `${top}px` }">
       <li v-if="!enhancerStore.hasAdvancedFavorite(selectedTag)" @click="enhancerStore.addAdvancedFavorite(selectedTag)">
-        收藏
+        {{ t('精选') }}
       </li>
       <li v-else @click="enhancerStore.removeAdvancedFavorite(selectedTag)">
-        取消收藏
+        {{ t('取消精选') }}
       </li>
     </ul>
     <div class="game-info">
@@ -698,29 +725,39 @@ watch(menuVisible, (value) => {
               <el-input v-model="search" :placeholder="t('搜索')" />
               <template v-if="enhancerStore.advancedFavorite.length && !search">
                 <el-divider class="mt-2 mb-2" />
-                <div class="mb-2 color-gray-500">
-                  {{ t('收藏') }}
-                  <span color-gray-600>
-                    ({{ t('右键/长按取消收藏') }})</span>
-                </div>
-                <div class="flex flex-wrap">
-                  <el-button
-                    v-for="hrid in enhancerStore.advancedFavorite"
-                    :key="hrid"
-                    class="relative"
-                    style="width: 50px; height: 50px; margin: 2px;"
-                    @click="onSelect(getItemDetailOf(hrid))"
-                    @contextmenu.prevent="openMenu(hrid, $event)"
-                  >
-                    <ItemIcon
-                      :hrid="hrid"
-                    />
-
-                    <div class="absolute bottom-0 right-0">
-                      <el-link :underline="false" :icon="StarFilled" type="primary" style="font-size:16px" />
-                    </div>
+                <div class="mb-2 color-gray-500 flex items-center justify-between">
+                  <div>
+                    {{ t('精选') }}
+                    <span color-gray-600>
+                      ({{ t('右键/长按取消精选') }})</span>
+                  </div>
+                  <el-button size="small" plain @click="batchVisible = true">
+                    {{ t('批量精选') }}
                   </el-button>
                 </div>
+                <template v-for="group in enhancerStore.groupedAdvancedFavorite" :key="group.level">
+                  <div class="mb-1 font-size-12px color-gray-400">
+                    {{ t('等级') }} {{ group.level }}
+                  </div>
+                  <div class="flex flex-wrap mb-2">
+                    <el-button
+                      v-for="hrid in group.hrids"
+                      :key="hrid"
+                      class="relative"
+                      style="width: 50px; height: 50px; margin: 2px;"
+                      @click="onSelect(getItemDetailOf(hrid))"
+                      @contextmenu.prevent="openMenu(hrid, $event)"
+                    >
+                      <ItemIcon
+                        :hrid="hrid"
+                      />
+
+                      <div class="absolute bottom-0 right-0" @click.stop="toggleAdvancedFavorite(hrid)">
+                        <el-link :underline="false" :icon="StarFilled" type="primary" style="font-size:16px" />
+                      </div>
+                    </el-button>
+                  </div>
+                </template>
                 <el-divider class="mt-2 mb-1" />
               </template>
               <div style="display: flex; flex-wrap: wrap;margin-top:10px">
@@ -736,11 +773,36 @@ watch(menuVisible, (value) => {
                     :hrid="item.hrid"
                   />
 
-                  <div v-if="enhancerStore.hasAdvancedFavorite(item.hrid)" class="absolute bottom-0 right-0">
-                    <el-link :underline="false" :icon="StarFilled" type="primary" style="font-size:16px" />
+                  <div class="absolute bottom-0 right-0" @click.stop="toggleAdvancedFavorite(item.hrid)">
+                    <el-link :underline="false" :icon="enhancerStore.hasAdvancedFavorite(item.hrid) ? StarFilled : Star" :type="enhancerStore.hasAdvancedFavorite(item.hrid) ? 'primary' : 'info'" style="font-size:16px" />
                   </div>
                 </el-button>
               </div>
+            </el-dialog>
+            <el-dialog v-model="batchVisible" :title="t('批量精选')" width="80%">
+              <el-input v-model="batchSearch" :placeholder="t('搜索')" clearable />
+              <div class="flex flex-wrap mt-2" style="max-height: 400px; overflow-y: auto">
+                <el-button
+                  v-for="item in batchEquipmentList"
+                  :key="item.hrid"
+                  style="width: 50px; height: 50px; margin: 2px;"
+                  :type="batchSelected.includes(item.hrid) ? 'primary' : ''"
+                  :plain="!batchSelected.includes(item.hrid)"
+                  @click="toggleBatch(item.hrid)"
+                >
+                  <ItemIcon
+                    :hrid="item.hrid"
+                  />
+                </el-button>
+              </div>
+              <template #footer>
+                <el-button @click="batchVisible = false">
+                  {{ t('取消') }}
+                </el-button>
+                <el-button type="primary" @click="saveBatch">
+                  {{ t('保存') }}
+                </el-button>
+              </template>
             </el-dialog>
           </div>
         </el-card>

@@ -21,7 +21,11 @@ export const useEnhancerStore = defineStore("enhancer", {
       if (index === -1) {
         this.favorite.push(hrid)
       }
-      this.favorite.sort((a, b) => getItemDetailOf(a).sortIndex - getItemDetailOf(b).sortIndex)
+      this.favorite.sort(compareByItemLevel)
+      saveFavorite(this.favorite)
+    },
+    setFavorites(hrids: string[]) {
+      this.favorite = [...hrids].sort(compareByItemLevel)
       saveFavorite(this.favorite)
     },
     removeFavorite(hrid: string) {
@@ -43,7 +47,11 @@ export const useEnhancerStore = defineStore("enhancer", {
       if (index === -1) {
         this.advancedFavorite.push(hrid)
       }
-      this.advancedFavorite.sort((a, b) => getItemDetailOf(a).sortIndex - getItemDetailOf(b).sortIndex)
+      this.advancedFavorite.sort(compareByItemLevel)
+      saveAdvancedFavorite(this.advancedFavorite)
+    },
+    setAdvancedFavorites(hrids: string[]) {
+      this.advancedFavorite = [...hrids].sort(compareByItemLevel)
       saveAdvancedFavorite(this.advancedFavorite)
     },
     removeAdvancedFavorite(hrid: string) {
@@ -66,9 +74,33 @@ export const useEnhancerStore = defineStore("enhancer", {
     taxRate: state => state.config.taxRate,
     hrid: state => state.config.hrid,
     originLevel: state => state.config.originLevel,
-    escapeLevel: state => state.config.escapeLevel
+    escapeLevel: state => state.config.escapeLevel,
+    groupedFavorite(state) {
+      return groupByItemLevel(state.favorite)
+    },
+    groupedAdvancedFavorite(state) {
+      return groupByItemLevel(state.advancedFavorite)
+    }
   }
 })
+
+/** 精选排序：先按物品等级，同级按游戏目录顺序 */
+function compareByItemLevel(a: string, b: string) {
+  const da = getItemDetailOf(a)
+  const db = getItemDetailOf(b)
+  return da.itemLevel - db.itemLevel || da.sortIndex - db.sortIndex
+}
+
+/** 按物品等级分组（等级升序） */
+function groupByItemLevel(hrids: string[]) {
+  const map = new Map<number, string[]>()
+  for (const hrid of hrids) {
+    const level = getItemDetailOf(hrid).itemLevel
+    if (!map.has(level)) map.set(level, [])
+    map.get(level)!.push(hrid)
+  }
+  return [...map.entries()].sort((a, b) => a[0] - b[0]).map(([level, list]) => ({ level, hrids: list }))
+}
 
 export interface EnhancerConfig {
   escapeLevel?: number
