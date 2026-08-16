@@ -52,8 +52,8 @@ export const DEFAULT_SHRINE_LIST: ShrineBuffItem[] = [
 export const SHRINE_CONFIG: Record<string, { key: NoncombatStatsKey, perLevel: number, name: string, label: string }> = {
   power: { key: "Efficiency", perLevel: 0.005, name: "力量神龛", label: "效率" },
   rhythm: { key: "Speed", perLevel: 0.005, name: "节奏神龛", label: "行动速度" },
-  spirit: { key: "EssenceFind", perLevel: 0.02, name: "精神神龛", label: "精华发现" },
-  rare: { key: "RareFind", perLevel: 0.01, name: "稀有神龛", label: "稀有发现" },
+  spirit: { key: "EssenceFind", perLevel: 0.03, name: "精神神龛", label: "精华发现" },
+  rare: { key: "RareFind", perLevel: 0.015, name: "稀有神龛", label: "稀有发现" },
   scholar: { key: "Experience", perLevel: 0.005, name: "学者神龛", label: "经验" }
 }
 

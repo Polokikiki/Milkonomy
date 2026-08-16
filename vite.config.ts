@@ -48,6 +48,13 @@ export default defineConfig(({ mode }) => {
           ws: false,
           // 是否允许跨域
           changeOrigin: true
+        },
+        // 市场数据走 dev 服务器转发：浏览器直连 milkywayidle.com 在国内常失败/超时，Node 侧转发稳定
+        "/milkyway-market": {
+          target: "https://www.milkywayidle.com",
+          ws: false,
+          changeOrigin: true,
+          rewrite: path => path.replace(/^\/milkyway-market/, "/game_data/marketplace.json")
         }
       },
       // 是否允许跨域

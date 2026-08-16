@@ -71,7 +71,7 @@ export const publicRoutes: RouteRecordRaw[] = [
       }
     ]
   },
-{
+  {
     path: "/",
     component: Layouts,
     redirect: "/jungle",
@@ -152,7 +152,7 @@ export const publicRoutes: RouteRecordRaw[] = [
       }
     ]
   },
-    {
+  {
     path: "/",
     component: Layouts,
     redirect: "/philosopher",
@@ -185,6 +185,5 @@ export const publicRoutes: RouteRecordRaw[] = [
         }
       }
     ]
-  },
-
+  }
 ]

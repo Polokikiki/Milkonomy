@@ -6,6 +6,86 @@ const { locale } = useI18n()
 
 <template>
   <div class="changelog-page">
+    <!-- ================== v2.5.0 ================== -->
+    <template v-if="locale !== 'en'">
+      <h2>v2.5.0 -- 2026-08-16</h2>
+
+      <p><strong>一、配装对比重做（首页 + 打野页）</strong></p>
+      <ol>
+        <li>修复对比时数值不显示的问题：行数据改为直接使用计算实例，不再因展开丢失数据。</li>
+        <li>对比新增利润百分比：括号式显示（如 36.7M (-1.9%)），升绿降红；首页按利润/天，打野按利润/h。</li>
+        <li>对比数据改为每个预设全量抓取、行取各预设并集，避免部分物品整行缺失。</li>
+        <li>进入对比不再重新计算原预设，切换更快。</li>
+      </ol>
+
+      <p><strong>二、新增「炼金路径」页</strong></p>
+      <ol>
+        <li>物品多选网格 + 分类筛选（装备细分工具/配饰），支持自定义组与批量收藏。</li>
+        <li>催化剂选择直接显示图标：1 级为转化/分解/点金催化剂，2 级为至高催化剂；支持「自动」取最优组合与含税开关。</li>
+        <li>买/卖价侧一键切换，自动重算。</li>
+        <li>结果按每小时利润降序，可展开对比每种方式的催化剂、成功率与经验。</li>
+      </ol>
+
+      <p><strong>三、预设弹窗改造</strong></p>
+      <ol>
+        <li>特殊装备（副手/头部/手部/脚部）改为图标行 + 强化等级角标。</li>
+        <li>项链/耳环/戒指/袋子紧凑展示。</li>
+        <li>手机端折叠表单；折叠标题显示五槽位图标与强化等级角标。</li>
+        <li>封印配置紧凑化。</li>
+      </ol>
+
+      <p><strong>四、移动端适配</strong></p>
+      <ol>
+        <li>全站滚动条样式统一。</li>
+        <li>修复手机端侧栏子菜单展开异常（存量问题，需真机验证）。</li>
+        <li>弹窗、表格、分页等移动端布局优化。</li>
+      </ol>
+
+      <p><strong>五、其他</strong></p>
+      <ol>
+        <li>神龛稀有/精华概率微调：稀有 0.01→0.015，精华 0.02→0.03（UI 显示同步）。</li>
+      </ol>
+    </template>
+    <template v-else>
+      <h2>v2.5.0 -- 2026-08-16</h2>
+
+      <p><strong>1. Compare Rework (Dashboard + Jungle)</strong></p>
+      <ol>
+        <li>Fixed missing numbers in compare view: rows now use the calculator instances directly instead of spreading (which dropped prototype getters).</li>
+        <li>Added profit percentage in parentheses (e.g. 36.7M (-1.9%)), green up / red down; daily profit on the dashboard page, profit/h on the jungle page.</li>
+        <li>Compare now fetches full data per preset and unions the rows, so no items are missing.</li>
+        <li>Entering compare no longer recomputes the base preset — faster switching.</li>
+      </ol>
+
+      <p><strong>2. New "Alchemy Path" Page</strong></p>
+      <ol>
+        <li>Multi-select item grid with category filters (tools/accessories split under equipment); custom groups and batch favorites.</li>
+        <li>Catalyst picker now shows item icons directly: Lv.1 = Transmute/Decompose/Coinify catalysts, Lv.2 = Prime Catalyst; "Auto" picks the best combination, with a market-tax toggle.</li>
+        <li>One-click buy/sell price side switch with auto recalculation.</li>
+        <li>Results sorted by profit/h, expandable to compare each method's catalyst, success rate and exp.</li>
+      </ol>
+
+      <p><strong>3. Preset Dialog Improvements</strong></p>
+      <ol>
+        <li>Special equipment (off-hand/head/hands/feet) shown as an icon row with enhance-level badges.</li>
+        <li>Necklace/earrings/ring/pouch displayed compactly.</li>
+        <li>Collapsible form on mobile; the collapsed header shows 5-slot icons with enhance-level badges.</li>
+        <li>Compact seal configuration.</li>
+      </ol>
+
+      <p><strong>4. Mobile Adaptation</strong></p>
+      <ol>
+        <li>Unified scrollbar styling across the site.</li>
+        <li>Fixed the mobile sidebar submenu expansion issue (existing bug — verify on a real device).</li>
+        <li>Mobile layout improvements for dialogs, tables and pagination.</li>
+      </ol>
+
+      <p><strong>5. Others</strong></p>
+      <ol>
+        <li>Shrine probability tweaks: rare 0.01→0.015, essence 0.02→0.03 (UI display synced).</li>
+      </ol>
+    </template>
+
     <!-- ================== v2.4.0 ================== -->
     <template v-if="locale !== 'en'">
       <h2>v2.4.0 -- 2026-08-13</h2>
