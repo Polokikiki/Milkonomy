@@ -34,7 +34,8 @@ const compareDataSets = ref<Record<string, Calculator>[]>([])
 const compareNames = ref<string[]>([])
 const COMPARE_TYPES = ["primary", "warning", "success", "danger", "info"] as const
 const compareIdxA = ref(0)
-let _compareResolve: (() => void) | null = null
+// 对比捕获进行中：暂停分页监听器触发的常规刷新，避免与全量捕获并发重复计算
+const isCapturing = ref(false)
 const compareSelectorRef = ref<HTMLElement>()
 
 function onCompareSelectorClickOutside(e: MouseEvent) {
@@ -89,7 +90,8 @@ const getLeaderboardData = debounce(() => {
     ...ldSearchData.value,
     sort: sortLD.value
   }).then((data) => {
-    paginationDataLD.total = data.total
+    // 对比模式下总数由并集行数管理，避免被普通刷新覆盖
+    if (!isComparing.value) paginationDataLD.total = data.total
     leaderboardData.value = data.list
   }).catch((e) => {
     console.error(e)
@@ -221,7 +223,10 @@ watch([
   () => useGameStore().buyStatus,
   () => useGameStore().sellStatus
 
-], getLeaderboardData, { immediate: true })
+], () => {
+  // 对比模式下主表格用并集数据，切预设/参数变化不再触发无用的重算
+  if (!isCapturing.value && !isComparing.value) getLeaderboardData()
+}, { immediate: true })
 
 // #endregion
 
@@ -243,7 +248,7 @@ function removeCompareSlot(index: number) {
   comparePresets.value.splice(index, 1)
 }
 
-function startNCompare() {
+async function startNCompare() {
   const ps = usePlayerStore()
   if (comparePresets.value.length < 2) {
     ElMessage.warning(t("请选择至少2个预设进行对比"))
@@ -255,67 +260,99 @@ function startNCompare() {
   compareDataSets.value = []
 
   const unique = [...new Set(comparePresets.value)]
-  let currentIdx = 0
-
-  function captureNext() {
-    if (currentIdx >= unique.length) {
-      const expanded = comparePresets.value.map((pidx) => {
-        const idx = unique.indexOf(pidx)
-        return compareDataSets.value[idx >= 0 ? idx : 0]
+  isCapturing.value = true
+  loadingLD.value = true
+  try {
+    for (const pidx of unique) {
+      // 每个预设直接全量拉取（绕过分页），保证对比列数据齐全
+      ps.switchTo(pidx)
+      const dataApi = dataSource.value.type === "junglest" ? getSuperJungleDataApi : getJungleDataApi
+      const data = await dataApi({
+        currentPage: 1,
+        size: 999999,
+        ...ldSearchData.value,
+        sort: sortLD.value
       })
-      compareDataSets.value = expanded
-      isComparing.value = true
-      _compareResolve = null
-      usePlayerStore().switchTo(compareIdxA.value)
-      return
-    }
-
-    const pidx = unique[currentIdx]
-    currentIdx++
-
-    if (pidx === usePlayerStore().presetIndex) {
       const map: Record<string, Calculator> = {}
-      for (const item of leaderboardData.value) map[item.key] = item
+      for (const item of data.list) map[item.key] = item
       compareDataSets.value.push(map)
-      captureNext()
-    } else {
-      _compareResolve = captureNext
-      usePlayerStore().switchTo(pidx)
+      console.log(`[compare] 打野预设${pidx}(${ps.presets[pidx]?.name}) 拉取 ${data.list.length} 行，key 样例:`, data.list.slice(0, 3).map((i: Calculator) => i.key))
     }
+  } catch (e) {
+    console.error(e)
+    ElMessage.error(t("计算失败或结果为空，请打开控制台查看错误"))
+  } finally {
+    isCapturing.value = false
+    loadingLD.value = false
   }
 
-  captureNext()
+  if (compareDataSets.value.length === 0) {
+    usePlayerStore().switchTo(compareIdxA.value)
+    getLeaderboardData()
+    return
+  }
+
+  // 选择器里可能重复选同一预设：展开成与 comparePresets 一一对应的数据集
+  compareDataSets.value = comparePresets.value.map((pidx) => {
+    const idx = unique.indexOf(pidx)
+    return compareDataSets.value[idx >= 0 ? idx : 0]
+  })
+
+  // 对比行 = 各预设数据的并集，总数用于分页
+  const unionKeys = new Set<string>()
+  for (const ds of compareDataSets.value) {
+    for (const key of Object.keys(ds)) unionKeys.add(key)
+  }
+  console.log("[compare] 打野各数据集行数:", compareDataSets.value.map(ds => Object.keys(ds).length), "| 并集 key 数:", unionKeys.size)
+  paginationDataLD.currentPage = 1
+  paginationDataLD.total = unionKeys.size
+  isComparing.value = true
+
+  // 切回原预设；对比模式表格用并集数据，无需重算原预设（退出对比时会重新拉取）
+  usePlayerStore().switchTo(compareIdxA.value)
 }
-
-// Watch leaderboardData: capture data for comparison
-watch(leaderboardData, (newVal) => {
-  if (_compareResolve) {
-    const map: Record<string, Calculator> = {}
-    for (const item of newVal) map[item.key] = item
-    compareDataSets.value.push(map)
-    const resolve = _compareResolve
-    _compareResolve = null
-    resolve()
-  }
-})
 
 function exitCompare() {
   isComparing.value = false
   compareDataSets.value = []
-  _compareResolve = null
+  getLeaderboardData()
 }
 
-const displayLeaderboardData = computed(() => {
-  if (!isComparing.value || compareDataSets.value.length === 0) return leaderboardData.value
-  return leaderboardData.value.map((row) => {
-    const dataSets = compareDataSets.value
-    const result: any = { ...row, _compareData: [] as (Calculator | null)[] }
-    for (const ds of dataSets) {
-      result._compareData.push(ds[row.key] || null)
+const compareUnionRows = computed<any[]>(() => {
+  if (!isComparing.value || compareDataSets.value.length === 0) return []
+  const rows: any[] = []
+  const seen = new Set<string>()
+  for (const ds of compareDataSets.value) {
+    for (const item of Object.values(ds)) {
+      if (seen.has(item.key)) continue
+      seen.add(item.key)
+      // 必须直接用 Calculator 实例做行：{...item} 展开会丢原型 getter（key/calculatorList 等）
+      ;(item as any)._compareData = [] as (Calculator | null)[]
+      rows.push(item)
     }
-    return result
-  })
+  }
+  for (const row of rows) {
+    for (const ds of compareDataSets.value) row._compareData.push(ds[row.key] || null)
+  }
+  console.log("[compare] 打野并集行数:", rows.length, "| 首行 key:", rows[0]?.key, "| 首行各预设利润/h:", rows[0]?._compareData?.map((cd: Calculator | null) => cd?.result?.profitPHFormat ?? null))
+  return rows
 })
+
+const displayLeaderboardData = computed(() => {
+  if (!isComparing.value || compareUnionRows.value.length === 0) return leaderboardData.value
+  const { currentPage, pageSize } = paginationDataLD
+  return compareUnionRows.value.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+})
+
+// 对比模式：当前预设相对第一个预设的每小时利润变化百分比（基准无效或自身时返回 null）
+function compareDeltaOf(row: any, ci: number): { text: string, positive: boolean } | null {
+  if (ci === 0) return null
+  const base = row._compareData?.[0]?.result?.profitPH
+  const cur = row._compareData?.[ci]?.result?.profitPH
+  if (!base || base <= 0 || !cur) return null
+  const pct = ((cur - base) / base) * 100
+  return { text: `${pct >= 0 ? "+" : ""}${pct.toFixed(1)}%`, positive: pct >= 0 }
+}
 
 const currentRow = ref<Calculator>()
 const detailVisible = ref<boolean>(false)
@@ -656,6 +693,12 @@ const isSuperJungle = computed(() => dataSource.value.type === "junglest")
                         <span v-if="cd">
                           <span v-if="ci > 0"> / </span>
                           <span :style="{ color: ['#409eff', '#e6a23c', '#16ab1b', '#f56c6c', '#909399'][ci % 5] }">{{ cd.result.profitPHFormat }}</span>
+                          <span
+                            v-if="compareDeltaOf(row, ci)"
+                            :style="{ color: compareDeltaOf(row, ci)!.positive ? '#16ab1b' : '#f56c6c', fontSize: '12px' }"
+                          >
+                            ({{ compareDeltaOf(row, ci)!.text }})
+                          </span>
                         </span>
                       </template>
                     </template>

@@ -10,7 +10,10 @@ export const usePlayerStore = defineStore("player", {
   state: () => ({
     config: load(),
     presets: loadPresets(),
-    presetIndex: getPresetIndex()
+    presetIndex: getPresetIndex(),
+    // 玩家配置版本号：config 被替换（切换预设/编辑配置/删预设）时递增，
+    // 排行榜缓存 key 依赖它，避免切预设后命中旧预设的缓存
+    configVersion: 0
   }),
   actions: {
     commit() {
@@ -18,12 +21,14 @@ export const usePlayerStore = defineStore("player", {
     },
     setActionConfig(config: ActionConfig, index: number) {
       this.config = config
+      this.configVersion++
       this.presets[index] = config
       this.commit()
       this.setPresetIndex(index)
     },
     switchTo(index: number) {
       this.config = this.presets[index]
+      this.configVersion++
       this.setPresetIndex(index)
     },
     removePreset(index: number) {
@@ -40,6 +45,7 @@ export const usePlayerStore = defineStore("player", {
         this.setPresetIndex(this.presetIndex - 1)
       }
       this.config = this.presets[this.presetIndex]
+      this.configVersion++
     },
     reorderPresets(fromIndex: number, toIndex: number) {
       if (fromIndex === toIndex || fromIndex < 0 || toIndex < 0) return

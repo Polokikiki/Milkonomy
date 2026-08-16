@@ -13,6 +13,7 @@ import { getEquipmentTypeOf } from "@/common/utils/game"
 import locales, { getTrans } from "@/locales"
 import { type StorageCalculatorItem, useFavoriteStoreOutside } from "@/pinia/stores/favorite"
 import { useGameStoreOutside } from "@/pinia/stores/game"
+import { usePlayerStoreOutside } from "@/pinia/stores/player"
 import { getGameDataApi } from "../game"
 import { handlePage, handlePush, handleSearch, handleSort, handleVolume1hSearch } from "../utils"
 import { isShopTier, normalizeProject, parseTierLevel, TIER_CHAINS } from "./tierChains"
@@ -28,7 +29,7 @@ export async function getLeaderboardDataApi(params: Leaderboard.RequestData) {
   const crossStepBalance = params.crossStepBalance === true
 
   let profitList: Calculator[] = []
-  const cacheKey = `${useGameStoreOutside().marketData!.timestamp}-${includeTax ? "tax" : "noTax"}-${crossStepBalance ? "csb" : "noCsb"}-buy${useGameStoreOutside().buyStatus}-sell${useGameStoreOutside().sellStatus}`
+  const cacheKey = `${useGameStoreOutside().marketData!.timestamp}-${includeTax ? "tax" : "noTax"}-${crossStepBalance ? "csb" : "noCsb"}-buy${useGameStoreOutside().buyStatus}-sell${useGameStoreOutside().sellStatus}-v${usePlayerStoreOutside().configVersion}`
   const cached = useGameStoreOutside().getLeaderboardCache(cacheKey)
   if (cached && cached.length > 0) {
     profitList = cached
@@ -141,7 +142,7 @@ export async function getLeaderboardDataApi(params: Leaderboard.RequestData) {
       // 有原料的就是单步制造（装备等），直接保留
       if (il.length > 0) return true
       const rawName: string = item.name || item.item?.name || ""
-      const itemName: string = rawName.match(/^[一-龥]/) ? rawName : t(rawName)
+      const itemName: string = rawName.match(/^[\u4E00-\u9FA5]/) ? rawName : t(rawName)
       return chainPrefixes.some(p => itemName.startsWith(p))
     })
   }
@@ -158,7 +159,9 @@ export async function getLeaderboardDataApi(params: Leaderboard.RequestData) {
         const hrid: string = ingrList[i].hrid || ""
         const price = SHOP_FIXED_PRICES[hrid]
         if (typeof price === "number") {
-          shopPrice = price; targetIndex = i; break
+          shopPrice = price
+          targetIndex = i
+          break
         }
       }
       if (shopPrice === undefined) return item
