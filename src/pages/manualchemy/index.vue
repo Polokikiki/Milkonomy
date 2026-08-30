@@ -60,12 +60,17 @@ const ldSearchData = useMemory("dashboard-manualchemy-search-data", {
   banEquipment: true
 })
 
+const includeTax = useMemory("manualchemy-include-tax", true)
+const includeRare = useMemory("manualchemy-include-rare", true)
+
 const loadingLD = ref(false)
 const getLeaderboardData = debounce(() => {
   loadingLD.value = true
   getLeaderboardDataApi({
     currentPage: paginationDataLD.currentPage,
     size: paginationDataLD.pageSize,
+    includeTax: includeTax.value,
+    includeRare: includeRare.value,
     ...ldSearchData.value,
     sort: sortLD.value
   }).then((data) => {
@@ -93,6 +98,8 @@ function handleSortLD(sort: Sort) {
 watch([
   () => paginationDataLD.currentPage,
   () => paginationDataLD.pageSize,
+  () => includeTax.value,
+  () => includeRare.value,
   () => useGameStore().marketData,
   () => usePlayerStore().config,
   () => useGameStore().buyStatus,
@@ -229,6 +236,13 @@ const onPriceStatusChange = usePriceStatus("manualchemy-price-status")
       <PriceStatusSelect
         @change="onPriceStatusChange"
       />
+
+      <el-checkbox v-model="includeTax" @change="handleSearchLD">
+        {{ t('计算税率') }}
+      </el-checkbox>
+      <el-checkbox v-model="includeRare" @change="handleSearchLD">
+        {{ t('稀有发现') }}
+      </el-checkbox>
     </div>
     <el-row :gutter="20" class="row">
       <el-col :xs="24" :sm="24" :md="24" :lg="24" :xl="14">
