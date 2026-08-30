@@ -61,6 +61,7 @@ const sealList = ref<ReturnType<typeof getSealList>>([])
 const seals = ref<string[]>([])
 const name = ref("")
 const color = ref("")
+const combatHouseLevel = ref(0)
 const currentIndex = ref(0)
 function onDialog(config: ActionConfig, index: number) {
  const defaultConfig = defaultActionConfig("", "")
@@ -111,6 +112,8 @@ function onDialog(config: ActionConfig, index: number) {
  : []
  name.value = config.name!
  color.value = config.color!
+ combatHouseLevel.value = config.combatHouseLevel ?? 0
+ color.value = config.color!
  visible.value = true
  currentIndex.value = index
 }
@@ -138,7 +141,8 @@ function constructActionConfig() {
  shrineBuffMap: new Map<ShrineType, ShrineBuffItem>(),
  seals: [...seals.value],
  name: name.value,
- color: color.value
+ color: color.value,
+ combatHouseLevel: combatHouseLevel.value
  }
 
  for (const item of actionList.value) {
@@ -1124,6 +1128,15 @@ function getAchievementEffect(type: AchievementTier) {
  </el-button>
  </div>
  </template>
+ <div class="flex items-center gap-2 mb-2 flex-wrap">
+   <span style="font-weight: 600; font-size: 14px; color: var(--el-text-color-primary)">
+     {{ t('战斗房等级（7间合计）') }}
+   </span>
+   <span style="font-size: 12px; color: var(--el-text-color-secondary)">
+     {{ t('全局经验 +0.05%/级 · 稀有发现 +0.2%/级') }}
+   </span>
+   <el-input-number v-model="combatHouseLevel" :min="0" :max="56" style="width: 64px" :controls="false" />
+ </div>
  <el-table :data="actionList.filter(item => actions ? actions.includes(item.action) : true)">
  <el-table-column prop="name" width="54">
  <template #default="{ row }">
