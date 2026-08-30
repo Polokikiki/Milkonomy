@@ -1,9 +1,59 @@
-// 文档级滚动锁：手机浏览器 100vh 含地址栏高度，会把文档撑出滚动余量
+// 文档级滚动锁：手机浏览器 100vh 含地址栏高度，会把文档撑出滚动余量。
+// 锁死后滚动完全依赖 .app-scrollbar，因此必须把 #app→layout-wrapper→…→app-main
+// 整条高度链补全为有界（flex 逐层收缩），否则 .app-scrollbar 拿不到高度、整页冻结滑不动。
 @media (max-width: 992px) {
   html,
   body,
   #app {
     overflow: hidden;
+    height: 100%;
+  }
+
+  #app .layout-wrapper {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  #app .layout-main {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  #app .app-wrapper {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  #app .main-container {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  #app .layout-header {
+    flex-shrink: 0;
+  }
+
+  // 覆盖 LeftMode 的 .fixed-header + .app-main { height: 100vh }，
+  // 改由 flex 收缩给高度；overflow hidden 保证只有 .app-scrollbar 滚
+  #app .app-main {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto;
+    overflow: hidden;
+  }
+
+  // 竖向触摸滑动时禁止容器横向跟随（左右晃动）；
+  // 宽表格由 el-table 内部横向滚动，页面级横向滚动不需要。
+  // 带 #app 提升优先级，压过组件 scoped 的 .app-scrollbar { overflow: auto }
+  #app .app-main .app-scrollbar {
+    overflow-x: hidden;
   }
 }
 
