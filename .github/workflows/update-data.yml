@@ -2,6 +2,10 @@ name: Update Game Data
 on:
   workflow_dispatch:
 
+concurrency:
+  group: gh-pages-writer
+  cancel-in-progress: false
+
 jobs:
   update-data:
     runs-on: ubuntu-latest
@@ -9,7 +13,7 @@ jobs:
       contents: write
     steps:
       - name: Checkout gh-pages branch
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           ref: gh-pages
@@ -25,19 +29,20 @@ jobs:
       - name: Copy data files from main
         shell: bash
         run: |
-          git checkout origin/main -- public/data/data.json public/data/market.json
+          # 只更新 data.json；market.json 由 update-market.yml 每小时抓官方最新，
+          # 这里若复制 main 里的过时快照会把新数据倒退回去
+          git checkout origin/main -- public/data/data.json
           mkdir -p data
           cp public/data/data.json data/data.json
-          cp public/data/market.json data/market.json
           rm -rf public
 
       - name: Commit and push if changed
         shell: bash
         run: |
-          if git diff --quiet -- data; then
+          git add data/data.json
+          if git diff --cached --quiet; then
             echo "No data changes detected"
             exit 0
           fi
-          git add data/data.json data/market.json
           git commit -m "Update data files from main"
           git push origin gh-pages

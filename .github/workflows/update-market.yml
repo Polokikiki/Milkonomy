@@ -1,6 +1,7 @@
 name: Update Market Data
 # 每小时抓取官方 marketplace.json 写入 gh-pages 的 data/market.json，
-# 作为前端官方直连失败（国内被墙/DNS劫持）时的同源回退数据源（见 src/pinia/stores/game.ts fetchData）
+# 作为前端官方直连失败（国内被墙/DNS劫持）时的同源回退数据源（见 src/pinia/stores/game.ts fetchData）；
+# 同时把每小时成交量快照追加到 data/vol-history.json（保留最近 25 条，供多窗口成交量求和）
 on:
   schedule:
     - cron: "23 * * * *"
@@ -8,6 +9,10 @@ on:
 
 permissions:
   contents: write
+
+concurrency:
+  group: gh-pages-writer
+  cancel-in-progress: false
 
 jobs:
   update-market:
@@ -33,13 +38,42 @@ jobs:
           curl -fsSL --retry 5 --retry-delay 10 https://www.milkywayidle.com/game_data/marketplace.json -o data/market.json
           python3 -c "import json; d=json.load(open('data/market.json')); assert isinstance(d.get('timestamp'), (int, float)) and d.get('marketData'), 'invalid marketplace.json format'"
 
+      - name: Append hourly volume snapshot
+        shell: bash
+        run: |
+          python3 - <<'EOF'
+          import json, os
+          new = json.load(open('data/market.json'))
+          ts = new['timestamp']
+          v = {}
+          for hrid, levels in (new.get('marketData') or {}).items():
+              if not levels:
+                  continue
+              for level, p in levels.items():
+                  if p and isinstance(p.get('v'), (int, float)) and p['v'] >= 0:
+                      v[f"{hrid}@{level}"] = p['v']
+          hist = []
+          if os.path.exists('data/vol-history.json'):
+              try:
+                  hist = json.load(open('data/vol-history.json'))
+              except Exception:
+                  hist = []
+          # 官方约每小时才重新生成，timestamp 相同时不重复追加
+          if not (hist and hist[-1].get('ts') == ts):
+              hist.append({'ts': ts, 'v': v})
+          hist = hist[-25:]
+          json.dump(hist, open('data/vol-history.json', 'w'), ensure_ascii=False, separators=(',', ':'))
+          print(f"vol-history entries: {len(hist)}, latest ts: {ts}")
+          EOF
+
       - name: Commit and push if changed
         shell: bash
         run: |
-          if git diff --quiet -- data/market.json; then
+          # 先 add 再用 --cached 检测，避免 untracked 文件（如 vol-history.json 首次生成）被漏掉
+          git add data/market.json data/vol-history.json
+          if git diff --cached --quiet; then
             echo "No market data changes"
             exit 0
           fi
-          git add data/market.json
           git commit -m "Update market snapshot [skip ci]"
           git push origin gh-pages

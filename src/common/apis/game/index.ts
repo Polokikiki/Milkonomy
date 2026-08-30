@@ -32,7 +32,6 @@ watch(() => useGameStoreOutside().gameData, () => {
   initProcessingProductMap()
 }, { immediate: true })
 watch(() => useGameStoreOutside().marketData, () => {
-  console.log("raw marketData changed")
   const data = Object.freeze(structuredClone(toRaw(useGameStoreOutside().marketData)))
   game.marketData = data
   _priceCache = {}
@@ -60,12 +59,16 @@ export function getMarketDataApi() {
   return res!
 }
 const SPECIAL_PRICE: Record<string, () => MarketItemPrice> = {
-  "/items/cowbell": () => ({
-    ask: getPriceOf("/items/bag_of_10_cowbells").ask / 10 || 40000,
-    bid: getPriceOf("/items/bag_of_10_cowbells").bid / 10 || 40000,
-    avg: -1,
-    vol: -1
-  }),
+  "/items/cowbell": () => {
+    const bag = getPriceOf("/items/bag_of_10_cowbells")
+    // 无市价时 ask/bid 为 -1，-1/10 是 truthy 会漏过 || 兜底，必须显式判断
+    return {
+      ask: bag.ask > 0 ? bag.ask / 10 : 40000,
+      bid: bag.bid > 0 ? bag.bid / 10 : 40000,
+      avg: -1,
+      vol: -1
+    }
+  },
   "/items/coin": () => ({
     ask: 1,
     bid: 1,
@@ -211,13 +214,14 @@ function isLoot(hrid: string) {
 
 function getLootPrice(hrid: string): MarketItemPrice {
   const drop = getGameDataApi().openableLootDropMap[hrid]
+  if (!drop) return { ask: -1, bid: -1, avg: -1, vol: -1 }
   return drop.reduce((acc, cur) => {
     const count = (cur.maxCount + cur.minCount) / 2
     const item = getPriceOf(cur.itemHrid)
     acc.ask += item.ask * count * cur.dropRate
     acc.bid += item.bid * count * cur.dropRate
     return acc
-  }, { ask: 0, bid: 0 })
+  }, { ask: 0, bid: 0, avg: -1, vol: -1 })
 }
 
 export function getItemDetailOf(hrid: string) {
@@ -438,7 +442,6 @@ export function getTransmuteExp(item: ItemDetail) {
 
 // #endregion
 
-
 /** 多窗口成交量：1h = 当前市场数据；N小时 = 最近 N 条小时快照求和 */
 export function getVolOf(hrid: string, level: number = 0, hours: number = 1): number {
   if (hours <= 1) return getPriceOf(hrid, level).vol ?? -1
@@ -471,8 +474,12 @@ export function getRealtimeAgeSec(): number {
 
 /** 催化剂价格侧独立设置 */
 let currentCatalystStatus: PriceStatus | null = null
-export function setCatalystBuyStatus(status: PriceStatus | null) { currentCatalystStatus = status }
-export function getCatalystBuyStatus(): PriceStatus | null { return currentCatalystStatus }
+export function setCatalystBuyStatus(status: PriceStatus | null) {
+  currentCatalystStatus = status
+}
+export function getCatalystBuyStatus(): PriceStatus | null {
+  return currentCatalystStatus
+}
 export function getCatalystAskOf(hrid: string): number {
   return getPriceOf(hrid, 0, currentCatalystStatus ?? currentBuyStatus).ask
 }

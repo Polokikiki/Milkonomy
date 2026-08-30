@@ -160,11 +160,12 @@ export const useGameStore = defineStore("game", {
           ElMessage.error(t("获取数据第{0}次失败，正在重试...", [5 - retryCount]))
         }
       }
-      if (this.gameData && this.marketData && retryCount === 0) {
-        ElMessage.error(t("数据获取失败，直接使用缓存数据"))
-        return
-      }
       if (retryCount < 0) {
+        // 5 次全部失败：有缓存则降级用缓存，否则只能报错
+        if (this.gameData && this.marketData) {
+          ElMessage.error(t("数据获取失败，直接使用缓存数据"))
+          return
+        }
         ElMessage.error(t("数据获取失败，请检查网络连接"))
         throw new Error("强制宕机")
       }
@@ -179,16 +180,48 @@ export const useGameStore = defineStore("game", {
         // "https://mooket.qi-e.top/market/api.json",
         "https://www.milkywayidle.com/game_data/marketplace.json"
       ]
-      // const LAST_MARKET_URL = `${url}data/market.json`
+      const LAST_MARKET_URL = `${url}data/market.json`
       const DATA_URL = `${url}data/data.json`
       const marketUrl = MARKET_URLS[(4 - offset) % MARKET_URLS.length]
 
-      const response = await Promise.all([fetch(DATA_URL), fetch(marketUrl)])
-      if (!response[0].ok || !response[1].ok) {
-        throw new Error("Response not ok")
+      // 官方 marketplace.json 响应带约 1h 的 HTTP 缓存头，必须 no-store，
+      // 否则挂机轮询永远命中缓存、时间戳停在首次打开时刻
+      const fetchMarket = async (u: string) => {
+        const controller = new AbortController()
+        const timer = setTimeout(() => controller.abort(), 10_000)
+        try {
+          return await fetch(u, { cache: "no-store", signal: controller.signal })
+        } finally {
+          clearTimeout(timer)
+        }
       }
-      const newGameData = await response[0].json()
-      const newMarketData = await response[1].json()
+      // 官方格式：数字 timestamp + marketData 对象（拒绝 MWIApi 旧格式 market/time）
+      const isOfficialMarket = (d: unknown): d is MarketDataPlain =>
+        typeof (d as MarketDataPlain)?.timestamp === "number"
+        && !!(d as MarketDataPlain)?.marketData
+
+      const dataPromise = fetch(DATA_URL).then(async (res) => {
+        if (!res.ok) throw new Error("Response not ok")
+        return res.json() as Promise<GameData>
+      })
+
+      let newMarketData: MarketDataPlain
+      try {
+        const marketResponse = await fetchMarket(marketUrl)
+        if (!marketResponse.ok) throw new Error("Response not ok")
+        const official = await marketResponse.json()
+        if (!isOfficialMarket(official)) throw new Error("invalid marketplace.json")
+        newMarketData = official
+      } catch (e) {
+        // 国内直连官方接口失败/超时：回退同源快照（gh-pages 上由 update-market workflow 每小时刷新）
+        console.warn("官方市场数据获取失败，回退本地快照", e)
+        const snapshotResponse = await fetchMarket(LAST_MARKET_URL)
+        if (!snapshotResponse.ok) throw new Error("Snapshot response not ok")
+        const snapshot = await snapshotResponse.json()
+        if (!isOfficialMarket(snapshot)) throw new Error("invalid market snapshot")
+        newMarketData = snapshot
+      }
+      const newGameData = await dataPromise
       // 仅当 gameData 版本真的变化时才更新 pinia 状态并清空衍生缓存，
       // 避免每次轮询都触发整棵响应链；
       // 历史上注释写的"防止国际化数据被覆"已不再成立——i18n 走静态映射，不会回写 gameData
@@ -210,6 +243,17 @@ export const useGameStore = defineStore("game", {
 
       this.marketData = await updateMarketData(this.marketData, newMarketData, newGameData)
       this.clearAllCaches()
+
+      // 成交量历史快照（update-market workflow 每小时生成；文件不存在时静默跳过）
+      fetch(`${url}data/vol-history.json`)
+        .then(async (res) => {
+          if (!res.ok) return
+          const hist = await res.json()
+          if (Array.isArray(hist) && hist.length > 0 && this.volHistory.length !== hist.length) {
+            this.volHistory = hist
+          }
+        })
+        .catch(() => { /* 快照尚未生成，忽略 */ })
     },
 
     savePriceStatus() {
@@ -381,8 +425,8 @@ async function updateMarketData(oldData: MarketData | null, newData: MarketDataP
     isEquipmentMap[item.hrid] = item.categoryHrid === "/item_categories/equipment"
   }
   for (const hrid in newMarket) {
-    // 如果是装备，则不保留旧值
-    if (isEquipmentMap[hrid] || oldMarket[hrid]) {
+    // 装备不留旧值；非装备且无旧数据的物品也无从回填，跳过
+    if (isEquipmentMap[hrid] || !oldMarket[hrid]) {
       continue
     }
     for (const level in newMarket[hrid]) {
