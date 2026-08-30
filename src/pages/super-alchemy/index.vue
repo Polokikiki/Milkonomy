@@ -1,13 +1,24 @@
 <script lang="ts" setup>
 import type { Sort } from "element-plus"
-import type { SuperAlchemyMode, SuperAlchemyOptions, SuperAlchemyRow, SuperNode, SuperTreeResult } from "@/calculator/superAlchemy"
+import type { SuperAction, SuperAlchemyMode, SuperAlchemyOptions, SuperAlchemyRow, SuperNode, SuperTreeResult } from "@/calculator/superAlchemy"
 import ItemIcon from "@@/components/ItemIcon/index.vue"
 import { useMemory } from "@@/composables/useMemory"
 import { usePagination } from "@@/composables/usePagination"
 import * as Format from "@@/utils/format"
 import { Search, Setting } from "@element-plus/icons-vue"
 import { ElMessage } from "element-plus"
-import ColumnSettings, { type ColumnDef } from "../dashboard/components/ColumnSettings.vue"
+import { buildSuperTree, computeSuperAlchemy } from "@/calculator/superAlchemy"
+import { getActionConfigOf } from "@/common/apis/player"
+import { usePriceStatus } from "@/common/composables/usePriceStatus"
+import { NO_TAX_FACTOR, SELL_TAX_FACTOR } from "@/common/constants/market"
+import { useGameStore } from "@/pinia/stores/game"
+import { usePlayerStore } from "@/pinia/stores/player"
+import ActionConfig from "../dashboard/components/ActionConfig.vue"
+import ColumnSettings from "../dashboard/components/ColumnSettings.vue"
+import GameInfo from "../dashboard/components/GameInfo.vue"
+import PriceStatusSelect from "../dashboard/components/PriceStatusSelect.vue"
+
+defineOptions({ name: "SuperAlchemy" })
 
 const { t } = useI18n()
 
@@ -23,6 +34,19 @@ const minProfitRate = useMemory("super-alchemy-min-profit-rate", undefined as nu
 const minVolume = useMemory("super-alchemy-min-volume", undefined as number | undefined)
 const banEquipment = useMemory("super-alchemy-ban-equipment", false)
 const catalystSide = useMemory("super-alchemy-catalyst-side", "")
+
+const columnVisible = useMemory("super-alchemy-column-visible", {
+  path: true,
+  steps: true,
+  reqLevel: true,
+  profitPH: true,
+  profit: true,
+  profitRate: true,
+  timePer: true,
+  buyPrice: true,
+  vol: true
+})
+const columnOrder = useMemory("super-alchemy-column-order", ["path", "steps", "reqLevel", "profitPH", "profit", "profitRate", "timePer", "buyPrice", "vol"])
 
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination({}, "super-alchemy-pagination")
 
@@ -149,7 +173,7 @@ const RANK1_CATALYSTS: Record<string, string> = {
   transmute: "catalyst_of_transmutation",
   coinify: "catalyst_of_coinification"
 }
-function catalystHridOf(node: SuperNode) {
+function catalystHridOf(node: { action: SuperAction, catalystRank: number }) {
   return node.catalystRank >= 2 ? "prime_catalyst" : RANK1_CATALYSTS[node.action]
 }
 
@@ -158,7 +182,47 @@ const detailVisible = ref(false)
 const tree = ref<SuperTreeResult | null>(null)
 const startNode = computed(() => tree.value?.root ?? null)
 const mainNodes = computed(() => tree.value?.mainNodes ?? [])
-const sellIncomeTotal = computed(() => sellRows.value.reduce((s, n) => s + n.sellValue, 0))
+
+interface BranchRow {
+  hrid: string
+  name: string
+  action: SuperAction
+  catalystRank: number
+  count: number
+  /** 直卖价值合计 */
+  sellValue: number
+  /** 直卖亏合计（继续炼比直接卖多赚的部分） */
+  advantage: number
+}
+/** 非主线但同样继续炼的中间产物（如观察者之眼转化出的护目镜），按物品去重、数量降序 */
+const branchNodes = computed<BranchRow[]>(() => {
+  if (!tree.value) return []
+  const mainIds = new Set(mainNodes.value.map(n => n.id))
+  const map = new Map<string, BranchRow>()
+  const walk = (node: SuperNode) => {
+    if (node.action !== "sell" && !mainIds.has(node.id) && node.count > 0) {
+      const exist = map.get(node.hrid)
+      if (exist) {
+        exist.count += node.count
+        exist.sellValue += node.sellValue
+        exist.advantage += node.chainIncome - node.sellValue
+      } else {
+        map.set(node.hrid, {
+          hrid: node.hrid,
+          name: node.name,
+          action: node.action,
+          catalystRank: node.catalystRank,
+          count: node.count,
+          sellValue: node.sellValue,
+          advantage: node.chainIncome - node.sellValue
+        })
+      }
+    }
+    node.children.forEach(walk)
+  }
+  walk(tree.value.root)
+  return [...map.values()].sort((a, b) => b.count - a.count)
+})
 const transformCostTotal = computed(() => {
   if (!tree.value) return 0
   let sum = 0
@@ -297,17 +361,19 @@ function showDetail(row: SuperAlchemyRow) {
         <el-table :data="pagedRows" v-loading="loading" @sort-change="handleSort">
           <el-table-column width="54">
             <template #header>
-              <ColumnSettings :columns="[
-                { key: 'path', label: '路径' },
-                { key: 'steps', label: '步数' },
-                { key: 'reqLevel', label: '要求等级' },
-                { key: 'profitPH', label: '利润 / h' },
-                { key: 'profit', label: '利润 / 件' },
-                { key: 'profitRate', label: '利润率' },
-                { key: 'timePer', label: '耗时 / 件' },
-                { key: 'buyPrice', label: '购入价' },
-                { key: 'vol', label: '成交量(1h)' }
-              ]" :visible="columnVisible" :order="columnOrder">
+              <ColumnSettings
+                :columns="[
+                  { key: 'path', label: '路径' },
+                  { key: 'steps', label: '步数' },
+                  { key: 'reqLevel', label: '要求等级' },
+                  { key: 'profitPH', label: '利润 / h' },
+                  { key: 'profit', label: '利润 / 件' },
+                  { key: 'profitRate', label: '利润率' },
+                  { key: 'timePer', label: '耗时 / 件' },
+                  { key: 'buyPrice', label: '购入价' },
+                  { key: 'vol', label: '成交量(1h)' },
+                ]" :visible="columnVisible" :order="columnOrder"
+              >
                 <template #reference>
                   <el-icon :size="18" style="cursor: pointer" :title="t('列设置')">
                     <Setting />
@@ -399,7 +465,9 @@ function showDetail(row: SuperAlchemyRow) {
         <el-row :gutter="12">
           <el-col :xs="24" :sm="8">
             <div class="flow-col">
-              <div class="flow-head">{{ t('起始') }}</div>
+              <div class="flow-head">
+                {{ t('起始') }}
+              </div>
               <div class="flow-body flow-scroll">
                 <div v-if="startNode" class="flow-row">
                   <ItemIcon :hrid="startNode.hrid" :width="26" :height="26" />
@@ -448,6 +516,28 @@ function showDetail(row: SuperAlchemyRow) {
                   <span v-if="chainAdvantageOf(node) > 0" class="flow-cost">{{ Format.money(chainAdvantageOf(node)) }}</span>
                   <span v-else class="flow-meta">-</span>
                 </div>
+                <div
+                  v-for="row in branchNodes"
+                  :key="row.hrid"
+                  class="flow-grid-row flow-branch"
+                  :title="t('非主线但同样继续炼的产物，其下游收益已计入卖出列')"
+                >
+                  <div class="flow-item">
+                    <el-tag size="small" :type="ACTION_TAGS[row.action].type">
+                      {{ ACTION_TAGS[row.action].label() }}
+                    </el-tag>
+                    <el-tooltip v-if="row.catalystRank > 0" :content="`${t('催化剂')} Lv.${row.catalystRank}`" placement="top">
+                      <ItemIcon :hrid="`/items/${catalystHridOf(row)}`" :width="16" :height="16" />
+                    </el-tooltip>
+                    <ItemIcon :hrid="row.hrid" :width="26" :height="26" />
+                    <span class="flow-name">{{ row.name }}</span>
+                    <span class="flow-branch-tag">{{ t('分支') }}</span>
+                  </div>
+                  <span class="flow-count">{{ Format.number(row.count, row.count < 0.1 ? 3 : 2) }}</span>
+                  <span class="flow-meta">{{ Format.money(row.sellValue / row.count) }}</span>
+                  <span v-if="row.advantage > 0" class="flow-cost">{{ Format.money(row.advantage / row.count) }}</span>
+                  <span v-else class="flow-meta">-</span>
+                </div>
               </div>
               <div class="flow-foot">
                 <span>{{ t('附加成本') }}</span>
@@ -457,7 +547,9 @@ function showDetail(row: SuperAlchemyRow) {
           </el-col>
           <el-col :xs="24" :sm="8">
             <div class="flow-col">
-              <div class="flow-head">{{ t('卖出') }}</div>
+              <div class="flow-head">
+                {{ t('卖出') }}
+              </div>
               <div class="flow-grid-head">
                 <span>{{ t('物品') }}</span>
                 <el-tooltip :content="t('期望产出率 = 掉落率×成功率，多来源已合并')" placement="top">
@@ -492,34 +584,6 @@ function showDetail(row: SuperAlchemyRow) {
     </el-dialog>
   </div>
 </template>
-
-<script lang="ts">
-import { computed, ref, watch } from "vue"
-import { buildSuperTree, computeSuperAlchemy } from "@/calculator/superAlchemy"
-import { getActionConfigOf } from "@/common/apis/player"
-import { usePriceStatus } from "@/common/composables/usePriceStatus"
-import { NO_TAX_FACTOR, SELL_TAX_FACTOR } from "@/common/constants/market"
-import { useGameStore } from "@/pinia/stores/game"
-import { usePlayerStore } from "@/pinia/stores/player"
-import ActionConfig from "../dashboard/components/ActionConfig.vue"
-import GameInfo from "../dashboard/components/GameInfo.vue"
-import PriceStatusSelect from "../dashboard/components/PriceStatusSelect.vue"
-
-const columnVisible = useMemory("super-alchemy-column-visible", {
-  path: true,
-  steps: true,
-  reqLevel: true,
-  profitPH: true,
-  profit: true,
-  profitRate: true,
-  timePer: true,
-  buyPrice: true,
-  vol: true
-})
-const columnOrder = useMemory("super-alchemy-column-order", ["path", "steps", "reqLevel", "profitPH", "profit", "profitRate", "timePer", "buyPrice", "vol"])
-
-export default { name: "SuperAlchemy" }
-</script>
 
 <style lang="scss" scoped>
 .title {
@@ -616,6 +680,20 @@ export default { name: "SuperAlchemy" }
   font-size: 12px;
   color: var(--el-text-color-secondary);
   border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
+.flow-branch {
+  opacity: 0.75;
+}
+
+.flow-branch-tag {
+  flex-shrink: 0;
+  padding: 0 4px;
+  font-size: 10px;
+  line-height: 16px;
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color-light);
+  border-radius: 3px;
 }
 
 .flow-grid-head span:not(:first-child),

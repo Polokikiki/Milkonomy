@@ -535,6 +535,8 @@ export default {
   "售出价格": "Sell Price",
   "工时": "Wage",
   "中间产物": "Intermediates",
+  "分支": "Branch",
+  "非主线但同样继续炼的产物，其下游收益已计入卖出列": "Off-main-path items that are also further alchemized; their downstream income is already counted in the sell column",
   "直卖亏": "Sell-lose",
   "直卖": "Direct sell",
   "沿链": "Chain",
@@ -572,5 +574,5 @@ export default {
   "实时 {0}m": "RT {0}m",
   "实时订单簿数据（玩家众包），覆盖最近浏览过的物品": "Realtime order book (crowdsourced by players)",
   "全局经验 +0.05%/级 · 稀有发现 +0.2%/级": "Global exp +0.05%/lv · rare find +0.2%/lv",
-  "战斗房等级（7间合计）": "Combat house level (7 rooms total)",
+  "战斗房等级（7间合计）": "Combat house level (7 rooms total)"
 }
