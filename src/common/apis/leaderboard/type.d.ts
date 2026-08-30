@@ -26,6 +26,7 @@ export interface RequestData {
   maxItemLevel?: number
   minVolume1h?: number
   maxVolume1h?: number
+  includeRare?: boolean
   /** 逐级制作：材质链 key（裁缝分皮/布） */
   tierChainKey?: string
   /** 起始材质档位（itemLevel） */

@@ -18,7 +18,10 @@ export class GatherCalculator extends Calculator {
 
   constructor(config: CalculatorConfig) {
     super(config)
+    this.includeRare = config.includeRare !== false
   }
+
+  readonly includeRare: boolean
 
   get actionItem() {
     // 彩虹奶酪是特例
@@ -67,19 +70,20 @@ export class GatherCalculator extends Calculator {
       }
     }
 
-    list = list.concat(this.actionItem.essenceDropTable?.map(essence => ({
-      hrid: essence.itemHrid,
-      count: essence.maxCount,
-      rate: essence.dropRate * (1 + this.essenceRatio),
-      marketPrice: getPriceOf(essence.itemHrid).bid
-    })) || [])
-    list = list.concat(this.actionItem.rareDropTable?.map(rare => ({
-      hrid: rare.itemHrid,
-      count: rare.maxCount,
-      rate: rare.dropRate * (1 + this.rareRatio),
-      marketPrice: getPriceOf(rare.itemHrid).bid
-    })) || []
-    )
+    if (this.includeRare) {
+      list = list.concat(this.actionItem.essenceDropTable?.map(essence => ({
+        hrid: essence.itemHrid,
+        count: essence.maxCount,
+        rate: essence.dropRate * (1 + this.essenceRatio),
+        marketPrice: getPriceOf(essence.itemHrid).bid
+      })) || [])
+      list = list.concat(this.actionItem.rareDropTable?.map(rare => ({
+        hrid: rare.itemHrid,
+        count: rare.maxCount,
+        rate: rare.dropRate * (1 + this.rareRatio),
+        marketPrice: getPriceOf(rare.itemHrid).bid
+      })) || [])
+    }
     return list
   }
 }

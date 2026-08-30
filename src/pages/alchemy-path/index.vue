@@ -20,6 +20,7 @@ const search = ref("")
 const selectedItems = ref<string[]>([])
 const catalystRank = useMemory("alchemy-path-catalyst-rank", 0)
 const includeTax = useMemory("alchemy-path-include-tax", true)
+const includeRare = useMemory("alchemy-path-include-rare", true)
 const itemGroup = useMemory("alchemy-path-item-group", "all")
 // 自定义组：任意分组点亮物品★加入，仅影响"自定义"筛选的显示范围
 const customItems = useMemory("alchemy-path-custom-items", [] as string[])
@@ -148,7 +149,7 @@ function compute() {
       for (const hrid of selectedItems.value) {
         const item = getGameDataApi().itemDetailMap[hrid]
         if (!item) continue
-        const { paths } = compareAlchemyPaths(item, ranks, sellTaxFactor)
+        const { paths } = compareAlchemyPaths(item, ranks, sellTaxFactor, includeRare.value)
         if (paths.length > 0) list.push({ item, paths })
       }
       results.value = list

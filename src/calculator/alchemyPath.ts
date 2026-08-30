@@ -9,12 +9,12 @@ export interface AlchemyPathResult {
 }
 
 /** 对比单个物品的炼金方式（转化/分解/点金 × 指定催化剂等级），按每小时利润降序返回可用列表 */
-export function compareAlchemyPaths(item: ItemDetail, catalystRanks: number[], sellTaxFactor: number): AlchemyPathResult {
+export function compareAlchemyPaths(item: ItemDetail, catalystRanks: number[], sellTaxFactor: number, includeRare: boolean): AlchemyPathResult {
   const paths: Calculator[] = []
   for (const Ctor of [TransmuteCalculator, DecomposeCalculator, CoinifyCalculator]) {
     for (const catalystRank of catalystRanks) {
       try {
-        const c = new Ctor({ hrid: item.hrid, catalystRank })
+        const c = new Ctor({ hrid: item.hrid, catalystRank, includeRare })
         c.setSellTaxFactor(sellTaxFactor)
         if (!c.available) continue
         c.run()

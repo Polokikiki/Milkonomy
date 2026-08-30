@@ -28,7 +28,8 @@ export async function getLeaderboardDataApi(params: Leaderboard.RequestData) {
   const crossStepBalance = params.crossStepBalance === true
 
   let profitList: Calculator[] = []
-  const cacheKey = `${useGameStoreOutside().marketData!.timestamp}-${includeTax ? "tax" : "noTax"}-${crossStepBalance ? "csb" : "noCsb"}-buy${useGameStoreOutside().buyStatus}-sell${useGameStoreOutside().sellStatus}`
+  const includeRare = params.includeRare !== false
+  const cacheKey = `${useGameStoreOutside().marketData!.timestamp}-${includeTax ? "tax" : "noTax"}-r${includeRare ? "1" : "0"}-${crossStepBalance ? "csb" : "noCsb"}-buy${useGameStoreOutside().buyStatus}-sell${useGameStoreOutside().sellStatus}`
   const cached = useGameStoreOutside().getLeaderboardCache(cacheKey)
   if (cached && cached.length > 0) {
     profitList = cached
@@ -37,7 +38,7 @@ export async function getLeaderboardDataApi(params: Leaderboard.RequestData) {
     const startTime = Date.now()
     let hasError = false
     try {
-      profitList = calcProfit(sellTaxFactor)
+      profitList = calcProfit(sellTaxFactor, includeRare)
       profitList = profitList.concat(calcAllFlowProfit(sellTaxFactor, crossStepBalance))
     } catch (e: any) {
       hasError = true
@@ -291,7 +292,7 @@ export async function getLeaderboardDataApi(params: Leaderboard.RequestData) {
   return handlePage(handleSort(handleSearch(profitList, params), params), params)
 }
 
-function calcProfit(sellTaxFactor: number) {
+function calcProfit(sellTaxFactor: number, includeRare: boolean) {
   const gameData = getGameDataApi()
   // 所有物品列表
   const list = Object.values(gameData.itemDetailMap)
@@ -340,7 +341,7 @@ function calcProfit(sellTaxFactor: number) {
       [getTrans("伐木"), "woodcutting"]
     ]
     for (const [project, action] of gatherings) {
-      const c = new GatherCalculator({ hrid: item.hrid, project, action })
+      const c = new GatherCalculator({ hrid: item.hrid, project, action, includeRare })
       c.setSellTaxFactor(sellTaxFactor)
       handlePush(profitList, c)
     }
