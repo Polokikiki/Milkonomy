@@ -11,7 +11,6 @@ import { cloneDeep, debounce } from "lodash-es"
 import { addFavoriteApi, deleteFavoriteApi, getFavoriteDataApi } from "@/common/apis/favorite"
 import { getPriceOf } from "@/common/apis/game"
 import { getActionConfigOf } from "@/common/apis/player"
-import { useAnnouncement } from "@/common/composables/useAnnouncement"
 import { useMemory } from "@/common/composables/useMemory"
 import { usePriceStatus } from "@/common/composables/usePriceStatus"
 import * as Format from "@/common/utils/format"
@@ -167,8 +166,6 @@ const includeTax = useMemory("dashboard-include-tax", true)
 const includeRare = useMemory("dashboard-include-rare", true)
 const crossStepBalance = useMemory("dashboard-cross-step-balance", false)
 
-const { visible: announceVisible, dismiss: announceDismiss } = useAnnouncement()
-
 const loadingLD = ref(false)
 
 const getLeaderboardData = debounce(() => {
@@ -322,7 +319,7 @@ function setPrice(row: Calculator) {
   priceVisible.value = true
 }
 
-const { t, locale } = useI18n()
+const { t } = useI18n()
 
 // 逐级制作 / 起始材质
 const showTierFilter = computed(() => supportsTierFilter(ldSearchData.value.project))
@@ -377,79 +374,6 @@ const onPriceStatusChange = usePriceStatus("dashboard-price-status")
 </script>
 
 <template>
-  <el-dialog v-model="announceVisible" :title="locale === 'en' ? 'Milkonomy v2.2.3 Update' : 'Milkonomy v2.2.3 更新'" width="560px" :close-on-click-modal="false" @close="announceDismiss">
-    <!-- 中文公告 -->
-    <div v-if="locale !== 'en'" style="line-height:2;font-size:14px">
-      <p style="font-weight:bold;margin-bottom:8px">
-        一、哞卡社区 Buff
-      </p>
-      <p>1. 预设配置新增「哞卡（Moo Card）」社区 Buff，排在首位。</p>
-
-      <p style="font-weight:bold;margin-bottom:8px;margin-top:12px">
-        二、数据导出插件同步
-      </p>
-      <p>1. 导出脚本已适配哞卡数据，一键导入即可带哞卡等级。</p>
-      <p>2. 安装/更新脚本后刷新页面生效。</p>
-
-      <p style="font-weight:bold;margin-bottom:8px;margin-top:12px">
-        三、脚本未安装通知
-      </p>
-      <p>1. 未安装导出脚本时，点击「一键导入」弹出下载指引，含直接下载和 GreasyFork 链接。</p>
-
-      <p style="font-weight:bold;margin-bottom:8px;margin-top:12px">
-        四、经验排序
-      </p>
-      <p>1. 首页经验/h列新增排序（降序/升序）。</p>
-      <p>2. 打野工具经验/h列同步支持排序。</p>
-
-      <p style="margin-top:8px">
-        📥 <a href="https://home.greasyfork.org.cn/zh-hans/info#/zh-CN/scripts/587094/detail" target="_blank" style="color:#409eff">安装脚本</a>
-      </p>
-
-      <p style="color:#909399;font-size:12px;margin-top:16px">
-        每个版本首次打开弹出，关闭后不再重复显示
-      </p>
-    </div>
-
-    <!-- English Announcement -->
-    <div v-else style="line-height:2;font-size:14px">
-      <p style="font-weight:bold;margin-bottom:8px">
-        1. Moo Card Community Buff
-      </p>
-      <p>1.1 New "Moo Card" community buff added to preset configuration, listed first.</p>
-
-      <p style="font-weight:bold;margin-bottom:8px;margin-top:12px">
-        2. Data Exporter Plugin Sync
-      </p>
-      <p>2.1 Exporter script now includes moo card data for one-click import.</p>
-      <p>2.2 Install/update the script and refresh to take effect.</p>
-
-      <p style="font-weight:bold;margin-bottom:8px;margin-top:12px">
-        3. Script Not Installed Notification
-      </p>
-      <p>3.1 When clicking "One-Click Import" without the exporter script, a download guide pops up.</p>
-
-      <p style="font-weight:bold;margin-bottom:8px;margin-top:12px">
-        4. Experience Sorting
-      </p>
-      <p>4.1 Dashboard exp/h column now supports sorting (descending/ascending).</p>
-      <p>4.2 Jungle tool exp/h column also supports sorting.</p>
-
-      <p style="margin-top:8px">
-        📥 <a href="https://home.greasyfork.org.cn/zh-hans/info#/zh-CN/scripts/587094/detail" target="_blank" style="color:#409eff">Install Script</a>
-      </p>
-
-      <p style="color:#909399;font-size:12px;margin-top:16px">
-        Shown once per version. Close to dismiss.
-      </p>
-    </div>
-
-    <template #footer>
-      <el-button type="primary" @click="announceDismiss">
-        {{ locale === 'en' ? 'Got it' : '知道了' }}
-      </el-button>
-    </template>
-  </el-dialog>
   <div class="app-container">
     <div class="game-info">
       <GameInfo />
