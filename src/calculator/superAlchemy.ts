@@ -184,7 +184,7 @@ function unitEval(hrid: string, ctx: Ctx): SuperUnitEval {
     mainHrids: [],
     successRate: 1,
     attemptsPerUnit: 0,
-    priceInvalid: sellUnit < 0,
+    priceInvalid: sellUnit < 0
   }
   candidates.push({ ev: sellEv })
 
@@ -205,12 +205,19 @@ function unitEval(hrid: string, ctx: Ctx): SuperUnitEval {
         const cycleCutProducts: SuperUnitEval["cycleCutProducts"] = []
         let cutIncome = 0
         for (const product of calc.productListWithPrice) {
-          if (product.hrid === hrid) continue
           const countPerUnit = actionsPerItem * product.count * (product.rate || 1) * calc.successRate
           if (countPerUnit < MIN_COUNT) continue
+          // 自返产物（如技能书 93.5% 变回自己）继续展开会成环，按卖出价计入收益
+          if (product.hrid === hrid) {
+            const v = sellValueOf(hrid, taxFactor)
+            if (v > 0) cutIncome += countPerUnit * v
+            cycleCutProducts.push({ hrid, count: countPerUnit })
+            continue
+          }
           if (product.hrid === COIN_HRID) {
-            cutIncome += countPerUnit
+            // coin 每袋价值 = 面额（sellPrice×5×bulkMultiplier），评估与展示必须同口径
             const denom = product.marketPrice && product.marketPrice > 0 ? product.marketPrice : 1
+            cutIncome += countPerUnit * denom
             cycleCutProducts.push({ hrid: COIN_HRID, count: countPerUnit * denom })
             continue
           }
@@ -269,7 +276,7 @@ function unitEval(hrid: string, ctx: Ctx): SuperUnitEval {
             mainHrids,
             successRate: calc.successRate,
             attemptsPerUnit: actionsPerItem,
-            priceInvalid: sellUnit < 0,
+            priceInvalid: sellUnit < 0
           }
         })
       }
@@ -382,13 +389,15 @@ export function buildSuperTree(item: ItemDetail, options: SuperAlchemyOptions): 
   // 主线序列：按评估时的 mainPath/mainHrids 在树里逐层找对应子节点
   const mainEv = ctx.memo.get(item.hrid)
   const mainNodes: SuperNode[] = []
-  let cursor: SuperNode | undefined = root
-  for (let i = 0; cursor && mainEv; i++) {
-    mainNodes.push(cursor)
-    const nextHrid = mainEv.mainHrids[i + 1]
-    const nextAction = mainEv.mainPath[i + 1]
-    if (!nextHrid || !nextAction) break
-    cursor = cursor.children.find(c => !c.cycleCut && c.hrid === nextHrid && c.action === nextAction)
+  if (mainEv) {
+    let cursor: SuperNode | undefined = root
+    for (let i = 0; cursor; i++) {
+      mainNodes.push(cursor)
+      const nextHrid = mainEv.mainHrids[i + 1]
+      const nextAction = mainEv.mainPath[i + 1]
+      if (!nextHrid || !nextAction) break
+      cursor = cursor.children.find(c => !c.cycleCut && c.hrid === nextHrid && c.action === nextAction)
+    }
   }
   let income = 0
   let cost = 0
