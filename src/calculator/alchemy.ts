@@ -1,5 +1,5 @@
 import type { CalculatorConfig, Ingredient, Product } from "."
-import { getAlchemyDecomposeEnhancingEssenceOutput, getAlchemyEssenceDropTable, getAlchemyRareDropTable, getCoinifyExp, getCoinifyTimeCost, getDecomposeExp, getDecomposeTimeCost, getPriceOf, getTransmuteExp, getTransmuteTimeCost } from "@/common/apis/game"
+import { getCatalystAskOf, getAlchemyDecomposeEnhancingEssenceOutput, getAlchemyEssenceDropTable, getAlchemyRareDropTable, getCoinifyExp, getCoinifyTimeCost, getDecomposeExp, getDecomposeTimeCost, getPriceOf, getTransmuteExp, getTransmuteTimeCost } from "@/common/apis/game"
 import { getAlchemySuccessRatio, getBuffOf, getTeaIngredientList } from "@/common/apis/player"
 import { getTrans } from "@/locales"
 import { COIN_HRID } from "@/pinia/stores/game"
@@ -39,7 +39,8 @@ abstract class AlchemyCalculator extends Calculator {
   }
 
   get exp(): number {
-    return this.baseExp * (1 + getBuffOf(this.action, "Experience"))
+    const sr = this.successRate
+    return this.baseExp * (1 + getBuffOf(this.action, "Experience")) * (sr + 0.1 * (1 - sr))
   }
 }
 
@@ -97,7 +98,7 @@ export class TransmuteCalculator extends AlchemyCalculator {
         hrid: `/items/${this.catalyst}`,
         // 成功才会消耗
         count: this.successRate,
-        marketPrice: getPriceOf(`/items/${this.catalyst}`).ask
+        marketPrice: getCatalystAskOf(`/items/${this.catalyst}`)
       })
 
       list = list.concat(getTeaIngredientList(this))
@@ -198,7 +199,7 @@ export class DecomposeCalculator extends AlchemyCalculator {
           hrid: `/items/${this.catalyst}`,
           // 成功才会消耗
           count: this.successRate,
-          marketPrice: getPriceOf(`/items/${this.catalyst}`).ask
+          marketPrice: getCatalystAskOf(`/items/${this.catalyst}`)
         })
       }
 
@@ -289,7 +290,7 @@ export class CoinifyCalculator extends AlchemyCalculator {
         hrid: `/items/${this.catalyst}`,
         // 成功才会消耗
         count: this.successRate,
-        marketPrice: getPriceOf(`/items/${this.catalyst}`).ask
+        marketPrice: getCatalystAskOf(`/items/${this.catalyst}`)
       })
 
       list = list.concat(getTeaIngredientList(this))

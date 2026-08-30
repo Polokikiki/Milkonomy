@@ -205,6 +205,8 @@ export interface ActionConfig {
   name?: string
   color?: string
   seals?: string[]
+  /** 战斗房等级合计（7间） */
+  combatHouseLevel?: number
   actionConfigMap: Map<Action, ActionConfigItem>
   specialEquimentMap: Map<Equipment, PlayerEquipmentItem>
   communityBuffMap: Map<CommunityBuff, CommunityBuffItem>

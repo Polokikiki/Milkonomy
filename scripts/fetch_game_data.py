@@ -8,7 +8,7 @@ from typing import Dict, Any
 
 DATA_URL = [
     "https://raw.githubusercontent.com/silent1b/MWIData/main/init_client_info.json",
-    "https://raw.githubusercontent.com/holychikenz/MWIApi/main/milkyapi.json",
+    "https://www.milkywayidle.com/game_data/marketplace.json",
 ]
 
 OUTPUT_DIR = "./public/data"

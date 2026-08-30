@@ -111,6 +111,8 @@ export const useGameStore = defineStore("game", {
     enhanposerCache: {} as { [time: number]: WorkflowCalculator[] },
     manualchemyCache: {} as { [key: string]: Calculator[] },
     superAlchemyCache: {} as { [key: string]: any[] },
+    volHistory: [] as { ts: number, v: Record<string, number> }[],
+    realtimeData: null as { ts: number, data: Record<string, { a: number, b: number, t: number }> } | null,
     jungleCache: {} as { [key: string]: WorkflowCalculator[] },
     junglestCache: {} as { [key: string]: EnhanceCalculator[] },
     inheritCache: {} as { [time: number]: ManufactureCalculator[] },
@@ -121,6 +123,18 @@ export const useGameStore = defineStore("game", {
     persistentDataHydrated: false
   }),
   actions: {
+    async pollRealtime() {
+      try {
+        const res = await fetch("https://rt.milkonomy.top/realtime.json", { cache: "no-store", signal: AbortSignal.timeout(10_000) })
+        if (!res.ok) return
+        const data = await res.json()
+        if (data && data.data && Object.keys(data.data).length > 0) {
+          this.realtimeData = data
+        }
+      } catch {
+        // 域名未生效/网络不可达时静默
+      }
+    },
     async hydratePersistentData() {
       if (this.persistentDataHydrated) {
         return

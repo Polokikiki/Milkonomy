@@ -437,3 +437,42 @@ export function getTransmuteExp(item: ItemDetail) {
 }
 
 // #endregion
+
+
+/** 多窗口成交量：1h = 当前市场数据；N小时 = 最近 N 条小时快照求和 */
+export function getVolOf(hrid: string, level: number = 0, hours: number = 1): number {
+  if (hours <= 1) return getPriceOf(hrid, level).vol ?? -1
+  const hist = useGameStoreOutside().volHistory
+  if (!hist || hist.length === 0) return -1
+  let sum = 0
+  for (const snap of hist.slice(-hours)) {
+    sum += snap.v?.[`${hrid}@${level}`] || 0
+  }
+  return sum
+}
+
+/** 实时订单簿价格 */
+export function getRealtimePriceOf(hrid: string, level: number = 0): { ask: number, bid: number, isRealtime: boolean } {
+  const rt = useGameStoreOutside().realtimeData
+  const key = `${hrid}@${level}`
+  const snap = rt?.data?.[key]
+  if (snap && snap.t > Date.now() - 120_000) {
+    return { ask: snap.a, bid: snap.b, isRealtime: true }
+  }
+  const p = getPriceOf(hrid, level)
+  return { ask: p.ask, bid: p.bid, isRealtime: false }
+}
+
+export function getRealtimeAgeSec(): number {
+  const rt = useGameStoreOutside().realtimeData
+  if (!rt || !rt.ts) return -1
+  return Math.floor((Date.now() - rt.ts) / 1000)
+}
+
+/** 催化剂价格侧独立设置 */
+let currentCatalystStatus: PriceStatus | null = null
+export function setCatalystBuyStatus(status: PriceStatus | null) { currentCatalystStatus = status }
+export function getCatalystBuyStatus(): PriceStatus | null { return currentCatalystStatus }
+export function getCatalystAskOf(hrid: string): number {
+  return getPriceOf(hrid, 0, currentCatalystStatus ?? currentBuyStatus).ask
+}

@@ -21,6 +21,8 @@ export interface CalculatorConfig {
   originLevel?: number
   /** 市场卖出税率因子：默认 0.98(2%税)；设为 1 表示不计税 */
   sellTaxFactor?: number
+  /** false 时产物剔除稀有掉落与额外精华掉落（采集/炼金系），默认 true */
+  includeRare?: boolean
 }
 export default abstract class Calculator {
   hrid: string
@@ -319,6 +321,7 @@ export default abstract class Calculator {
       cost4MatPHFormat: Format.money(cost4MatPH),
       incomePHFormat: Format.money(incomePH),
       profitPHFormat: Format.money(profitPH),
+      profitPD: profitPH * 24,
       profitPDFormat: Format.money(profitPH * 24),
       profitPP,
       profitPPFormat: Format.money(profitPP),

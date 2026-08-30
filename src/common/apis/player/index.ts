@@ -358,6 +358,13 @@ function initBuffMap() {
     }
   }
 
+  // 战斗房：全局经验+0.05%/级、稀有发现+0.2%/级
+  const combatHouseLevel = playerConfig.combatHouseLevel || 0
+  if (combatHouseLevel > 0) {
+    buffs.skillingExperience = (buffs.skillingExperience || 0) + 0.0005 * combatHouseLevel
+    buffs.skillingRareFind = (buffs.skillingRareFind || 0) + 0.002 * combatHouseLevel
+  }
+
   // 封印（全局单独 buff）
   for (const seal of getSealsOf()) {
     const key = SEAL_BUFF_KEY_MAP[seal]

@@ -23,6 +23,11 @@ import VueGtag, { trackRouter } from "vue-gtag-next"
 // 创建应用实例
 const app = createApp(App)
 
+app.config.errorHandler = (err, _instance, info) => {
+  console.error("[全局错误]", info, err)
+  ElMessage.error(`页面发生错误：${info}（请刷新重试）`)
+}
+
 // 安装插件（全局组件、自定义指令等）
 installPlugins(app)
 
@@ -37,6 +42,10 @@ app.use(pinia).use(router)
 setInterval(() => {
   useGameStoreOutside().tryFetchData()
 }, 300 * 1000)
+
+setInterval(() => {
+  useGameStoreOutside().pollRealtime()
+}, 30 * 1000)
 
 app.use(VueGtag, {
   property: {

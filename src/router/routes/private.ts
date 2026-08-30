@@ -28,34 +28,31 @@ export const privateRoutes: RouteRecordRaw[] = [
     ]
   },
   {
-    path: "/",
+    path: "/alchemy-tools",
     component: Layouts,
     redirect: "/manualchemy",
+    meta: {
+      title: t("炼金工具"),
+      elIcon: "MagicStick"
+    },
     children: [
       {
-        path: "manualchemy",
+        path: "/manualchemy",
         component: () => import("@/pages/manualchemy/index.vue"),
         name: "Manualchemy",
-        meta: {
-          title: t("制作炼金"),
-          svgIcon: "dashboard"
-        }
-      }
-    ]
-  },
-  {
-    path: "/",
-    component: Layouts,
-    redirect: "/alchemy-path",
-    children: [
+        meta: { title: t("制作炼金"), svgIcon: "dashboard" }
+      },
       {
-        path: "alchemy-path",
+        path: "/alchemy-path",
         component: () => import("@/pages/alchemy-path/index.vue"),
         name: "AlchemyPath",
-        meta: {
-          title: t("炼金路径"),
-          svgIcon: "dashboard"
-        }
+        meta: { title: t("炼金路径"), svgIcon: "dashboard" }
+      },
+      {
+        path: "/super-alchemy",
+        component: () => import("@/pages/super-alchemy/index.vue"),
+        name: "SuperAlchemy",
+        meta: { title: t("超级炼金"), svgIcon: "dashboard" }
       }
     ]
   },

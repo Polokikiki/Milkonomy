@@ -18,3 +18,9 @@
     }
   }
 }
+
+
+// 表头文字不换行：列窄时默认会折行（如"成交量(1h)"拆成两行）
+.el-table th .cell {
+  white-space: nowrap;
+}

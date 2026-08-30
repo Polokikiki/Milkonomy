@@ -23,3 +23,8 @@ milkonomy260423/
 
 # 临时预览文件
 _new_icons_preview.*
+
+# 安全文档永不入库
+SECURITY*
+*DO-NOT-COMMIT*
+*.secret*
