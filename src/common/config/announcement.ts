@@ -22,9 +22,9 @@ export interface AnnouncementConfig {
 
 export const announcementConfig: AnnouncementConfig = {
   enabled: true,
-  id: "v2.5.0-alchemy-path",
+  id: "v2.6.0-super-alchemy",
   message: {
-    title: "v2.5.0 更新公告",
+    title: "v2.6.0 更新公告",
     content: [
       "一、配装对比重做",
       "1. 修复对比时数值不显示的问题，对比行新增利润百分比（升绿降红）。",

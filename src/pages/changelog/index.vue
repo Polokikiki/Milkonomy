@@ -1,6 +1,110 @@
 <template>
  <div class="changelog-page">
- <!-- ================== v2.2.3 ================== -->
+ <!-- ================== v2.6.0 ================== -->
+    <template v-if="locale !== 'en'">
+      <h2>v2.6.0 -- 2026-08-30</h2>
+      <p><strong>一、新增「超级炼金」页</strong></p>
+      <ol>
+        <li>全物品整链排行：分解/转化/点金自由组合，只保留比直卖划算的链。智能/最长链双模式。</li>
+        <li>「查看」三列详情：起始→中间产物→卖出（单价与每小时利润）。</li>
+        <li>炼金经验修正：失败也给10%经验；点金收益修复。</li>
+      </ol>
+      <p><strong>二、预设优化</strong></p>
+      <ol>
+        <li>战斗房等级（7间合计）；一键导入写入当前预设。</li>
+      </ol>
+      <p><strong>三、显示行列自定义</strong></p>
+      <ol>
+        <li>列设置齿轮+拖拽排序；产出筛选；更多排序列。</li>
+      </ol>
+      <p><strong>四、其他更新</strong></p>
+      <ol>
+        <li>稀有发现开关（四页）；催化剂价格独立设置；白板无挂单装备回退自制成本。</li>
+      </ol>
+      <p><strong>五、修复</strong></p>
+      <ol>
+        <li>强化分解不卡死；切预设刷新；经验排序；手机滚动。</li>
+      </ol>
+      <p><strong>六、感谢</strong></p>
+      <p>🎉 henxiayu（微信 ¥20）、包子（微信 ¥10）、Joey（智谱会员）</p>
+    </template>
+    <template v-else>
+      <h2>v2.6.0 -- 2026-08-30</h2>
+      <p><strong>1. New "Super Alchemy" Page</strong></p>
+      <ol><li>Full-item chain ranking; Smart/Longest modes; 3-column detail view; exp & coinify fixes.</li></ol>
+      <p><strong>2. Preset Improvements</strong></p>
+      <ol><li>Combat house; import to current preset.</li></ol>
+      <p><strong>3. Custom Display & Columns</strong></p>
+      <ol><li>Column settings with drag; output filter; more sorting.</li></ol>
+      <p><strong>4. Others</strong></p>
+      <ol><li>Rare find toggle; catalyst price; craft cost fallback.</li></ol>
+      <p><strong>5. Fixes</strong></p>
+      <ol><li>No more freezing; preset refresh; exp sorting; mobile scroll.</li></ol>
+      <p><strong>6. Donations</strong></p>
+      <p>🎉 henxiayu / 包子 / Joey</p>
+    </template>
+
+    <!-- ================== v2.5.0 ================== -->
+    <template v-if="locale !== 'en'">
+      <h2>v2.5.0 -- 2026-08-16</h2>
+      <p><strong>一、配装对比重做</strong></p>
+      <ol><li>修复数值不显示；新增利润百分比；全量并集行。</li></ol>
+      <p><strong>二、新增「炼金路径」页</strong></p>
+      <ol><li>物品多选+分类筛选+自定义组；催化剂图标；买卖价切换。</li></ol>
+      <p><strong>三、预设弹窗改造</strong></p>
+      <ol><li>特殊装备图标行+强化等级角标。</li></ol>
+      <p><strong>四、移动端适配</strong></p>
+      <ol><li>全站滚动条统一；手机侧栏修复。</li></ol>
+    </template>
+    <template v-else>
+      <h2>v2.5.0 -- 2026-08-16</h2>
+      <p><strong>1. Compare Rework</strong></p>
+      <ol><li>Fixed missing numbers; profit percentage; full union rows.</li></ol>
+      <p><strong>2. New "Alchemy Path" Page</strong></p>
+      <ol><li>Multi-select grid; catalyst icons; buy/sell switch.</li></ol>
+      <p><strong>3. Preset Dialog</strong></p>
+      <ol><li>Icon rows with enhance badges.</li></ol>
+      <p><strong>4. Mobile</strong></p>
+      <ol><li>Scrollbar unify; sidebar fix.</li></ol>
+    </template>
+
+    <!-- ================== v2.4.0 ================== -->
+    <template v-if="locale !== 'en'">
+      <h2>v2.4.0 -- 2026-08-13</h2>
+      <p><strong>一、市场税率调整</strong></p>
+      <ol><li>市场卖出税率由 2% 调整为 5%（税后因子 0.98 → 0.95）。</li></ol>
+      <p><strong>二、强化页面 UI 调整</strong></p>
+      <ol><li>税率锁定 5%；溢价率绑定修复；价格档位细化。</li></ol>
+    </template>
+    <template v-else>
+      <h2>v2.4.0 -- 2026-08-13</h2>
+      <p><strong>1. Market Tax Adjustment</strong></p>
+      <ol><li>Tax rate changed from 2% to 5%.</li></ol>
+      <p><strong>2. Enhancement UI</strong></p>
+      <ol><li>Tax locked to 5%; premium rate fix; price tier refinement.</li></ol>
+    </template>
+
+    <!-- ================== v2.3.0 ================== -->
+    <template v-if="locale !== 'en'">
+      <h2>v2.3.0 -- 2026-08-08</h2>
+      <p><strong>一、哞卡社区 Buff</strong></p>
+      <ol><li>预设配置新增「哞卡」社区 Buff。</li></ol>
+      <p><strong>二、数据导出插件同步</strong></p>
+      <ol><li>导出脚本已适配哞卡数据。</li></ol>
+      <p><strong>三、脚本未安装通知</strong></p>
+      <ol><li>未安装导出脚本时弹出下载指引。</li></ol>
+    </template>
+    <template v-else>
+      <h2>v2.3.0 -- 2026-08-08</h2>
+      <p><strong>1. Moo Card Community Buff</strong></p>
+      <ol><li>New moo card buff in preset.</li></ol>
+      <p><strong>2. Exporter Sync</strong></p>
+      <ol><li>Script now includes moo card data.</li></ol>
+      <p><strong>3. Not Installed Notification</strong></p>
+      <ol><li>Download guide when script missing.</li></ol>
+    </template>
+
+    <!-- ================== v2.2.3 ================== -->
  <template v-if="locale !== 'en'">
  <h2>v2.2.3 -- 2026-08-08</h2>
 
