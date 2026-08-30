@@ -94,7 +94,10 @@ function handlePriceStatusChange() {
 const EXCLUDED_HRIDS = new Set(["/items/bag_of_10_cowbells"])
 
 const tradableItemList = computed(() => {
-  return Object.values(getGameDataApi().itemDetailMap)
+  // 数据未加载/加载失败时 gameData 为 null，直接给空列表，避免渲染期抛 runtime-1
+  const gameData = getGameDataApi()
+  if (!gameData) return []
+  return Object.values(gameData.itemDetailMap)
     .filter(item => item.isTradable && !EXCLUDED_HRIDS.has(item.hrid))
     .sort((a, b) => a.sortIndex - b.sortIndex)
 })
@@ -129,7 +132,7 @@ function catalystHridOf(calc: Calculator): string | undefined {
 function catalystNameOf(calc: Calculator): string {
   const hrid = catalystHridOf(calc)
   if (!hrid) return t("无")
-  const name = getGameDataApi().itemDetailMap[`/items/${hrid}`]?.name
+  const name = getGameDataApi()?.itemDetailMap?.[`/items/${hrid}`]?.name
   return t(name ?? hrid)
 }
 
@@ -147,7 +150,7 @@ function compute() {
     try {
       const list: { item: ItemDetail, paths: Calculator[] }[] = []
       for (const hrid of selectedItems.value) {
-        const item = getGameDataApi().itemDetailMap[hrid]
+        const item = getGameDataApi()?.itemDetailMap?.[hrid]
         if (!item) continue
         const { paths } = compareAlchemyPaths(item, ranks, sellTaxFactor, includeRare.value)
         if (paths.length > 0) list.push({ item, paths })

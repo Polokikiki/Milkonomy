@@ -25,7 +25,8 @@ const app = createApp(App)
 
 app.config.errorHandler = (err, _instance, info) => {
   console.error("[全局错误]", info, err)
-  ElMessage.error(`页面发生错误：${info}（请刷新重试）`)
+  const detail = err instanceof Error ? err.message : String(err)
+  ElMessage.error(`页面发生错误：${info} ${detail}（请刷新重试）`)
 }
 
 // 安装插件（全局组件、自定义指令等）
