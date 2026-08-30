@@ -27,7 +27,7 @@ export function handleSort(profitList: Calculator[], params: any) {
     })
     // DEBUG
     const vals = sorted.map(c => getValue(c)).filter(v => v != null)
-    console.log(`[handleSort] order=${order} prop=${props.join(".")} total=${sorted.length} withVal=${vals.length} first3=${JSON.stringify(vals.slice(0, 3))} last3=${JSON.stringify(vals.slice(-3))}`)
+    console.log(`[handleSort] order=${order} prop=${props.join(".")} total=${sorted.length} withVal=${vals.length} first3=${JSON.stringify(vals.slice(0,3))} last3=${JSON.stringify(vals.slice(-3))}`)
   } else {
     sorted.sort((a, b) => b.result.profitPH - a.result.profitPH)
   }

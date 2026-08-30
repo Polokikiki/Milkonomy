@@ -3,9 +3,9 @@ import * as Format from "@@/utils/format"
 import { getItemDetailOf } from "@/common/apis/game"
 import { getBuffOf, getPlayerLevelOf } from "@/common/apis/player"
 import { getManualPriceOf } from "@/common/apis/price"
-import { SELL_TAX_FACTOR } from "@/common/constants/market"
 import { getTrans } from "@/locales"
 import { COIN_HRID } from "@/pinia/stores/game"
+import { SELL_TAX_FACTOR } from "@/common/constants/market"
 
 export const MIN_ACTION_TIME_COST = 3 * 1000000000
 
@@ -19,7 +19,7 @@ export interface CalculatorConfig {
   catalystRank?: number
   enhanceLevel?: number
   originLevel?: number
-  /** 市场卖出税率因子：默认 0.95(5%税)；设为 1 表示不计税 */
+  /** 市场卖出税率因子：默认 0.98(2%税)；设为 1 表示不计税 */
   sellTaxFactor?: number
 }
 export default abstract class Calculator {
@@ -37,7 +37,7 @@ export default abstract class Calculator {
   hasManualPrice: boolean = false
   config: CalculatorConfig
   enhanceLevel: number = 0
-  /** 市场卖出税率因子：默认 0.95(5%税)；设为 1 表示不计税 */
+  /** 市场卖出税率因子：默认 0.98(2%税)；设为 1 表示不计税 */
   sellTaxFactor: number = SELL_TAX_FACTOR
   constructor(config: CalculatorConfig) {
     const { hrid, project, action, ingredientPriceConfigList = [], productPriceConfigList = [], catalystRank } = config

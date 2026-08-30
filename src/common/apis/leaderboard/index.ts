@@ -7,16 +7,15 @@ import { GatherCalculator } from "@/calculator/gather"
 import { ManufactureCalculator } from "@/calculator/manufacture"
 import { getStorageCalculatorItem } from "@/calculator/utils"
 import { WorkflowCalculator } from "@/calculator/workflow"
-import { SHOP_FIXED_PRICES } from "@/common/config"
-import { NO_TAX_FACTOR, SELL_TAX_FACTOR } from "@/common/constants/market"
-import { getEquipmentTypeOf } from "@/common/utils/game"
 import locales, { getTrans } from "@/locales"
+import { SHOP_FIXED_PRICES } from "@/common/config"
 import { type StorageCalculatorItem, useFavoriteStoreOutside } from "@/pinia/stores/favorite"
 import { useGameStoreOutside } from "@/pinia/stores/game"
-import { usePlayerStoreOutside } from "@/pinia/stores/player"
 import { getGameDataApi } from "../game"
-import { handlePage, handlePush, handleSearch, handleSort, handleVolume1hSearch } from "../utils"
 import { isShopTier, normalizeProject, parseTierLevel, TIER_CHAINS } from "./tierChains"
+import { getEquipmentTypeOf } from "@/common/utils/game"
+import { SELL_TAX_FACTOR, NO_TAX_FACTOR } from "@/common/constants/market"
+import { handlePage, handlePush, handleSearch, handleSort, handleVolume1hSearch } from "../utils"
 
 const { t } = locales.global
 /** 查 */
@@ -29,7 +28,7 @@ export async function getLeaderboardDataApi(params: Leaderboard.RequestData) {
   const crossStepBalance = params.crossStepBalance === true
 
   let profitList: Calculator[] = []
-  const cacheKey = `${useGameStoreOutside().marketData!.timestamp}-${includeTax ? "tax" : "noTax"}-${crossStepBalance ? "csb" : "noCsb"}-buy${useGameStoreOutside().buyStatus}-sell${useGameStoreOutside().sellStatus}-v${usePlayerStoreOutside().configVersion}`
+  const cacheKey = `${useGameStoreOutside().marketData!.timestamp}-${includeTax ? "tax" : "noTax"}-${crossStepBalance ? "csb" : "noCsb"}-buy${useGameStoreOutside().buyStatus}-sell${useGameStoreOutside().sellStatus}`
   const cached = useGameStoreOutside().getLeaderboardCache(cacheKey)
   if (cached && cached.length > 0) {
     profitList = cached
@@ -71,8 +70,9 @@ export async function getLeaderboardDataApi(params: Leaderboard.RequestData) {
 
   // 排除装备：仅当项目选中时生效，用装备类型判断而非 ingredientList
   if (params.banEquipment && params.project) {
-    const normProject = normalizeProject(params.project || "")
-    const skipProjects = ["冲泡", "烹饪", "挤奶", "采摘", "伐木", "点金", "分解", "转化", "炼金", "强化", "Brewing", "Cooking", "Milking", "Foraging", "Woodcutting", "Coinify", "Decompose", "Transmute", "Alchemy", "Enhancing"]
+    const normProject = normalizeProject(params.project || '')
+    const skipProjects = ['冲泡', '烹饪', '挤奶', '采摘', '伐木', '点金', '分解', '转化', '炼金', '强化',
+      'Brewing', 'Cooking', 'Milking', 'Foraging', 'Woodcutting', 'Coinify', 'Decompose', 'Transmute', 'Alchemy', 'Enhancing']
     if (!skipProjects.includes(normProject)) {
       profitList = profitList.filter((item: any) => {
         const calcList = item.calculatorList
@@ -81,8 +81,8 @@ export async function getLeaderboardDataApi(params: Leaderboard.RequestData) {
         // 物品本身是装备类型（body/legs/head/hands/feet/back/charm）→ 排除
         const eqType = item.item?.equipmentDetail?.type
         if (eqType) {
-          const slot = (eqType as string).split("/").pop()
-          const equipSlots = ["body", "legs", "head", "hands", "feet", "back", "charm"]
+          const slot = (eqType as string).split('/').pop()
+          const equipSlots = ['body', 'legs', 'head', 'hands', 'feet', 'back', 'charm']
           if (equipSlots.includes(slot!)) return false
         }
         return true
@@ -105,7 +105,7 @@ export async function getLeaderboardDataApi(params: Leaderboard.RequestData) {
       // 奶酪链特殊处理
       const extra: string[] = []
       for (const label of chainPrefixes) {
-        const short = label.replace("奶酪", "")
+        const short = label.replace('奶酪', '')
         if (short && short !== label) extra.push(short)
       }
       chainPrefixes.push(...extra)
@@ -141,8 +141,8 @@ export async function getLeaderboardDataApi(params: Leaderboard.RequestData) {
       const il = item.ingredientListWithPrice || item.ingredientList || []
       // 有原料的就是单步制造（装备等），直接保留
       if (il.length > 0) return true
-      const rawName: string = item.name || item.item?.name || ""
-      const itemName: string = rawName.match(/^[\u4E00-\u9FA5]/) ? rawName : t(rawName)
+      const rawName: string = item.name || item.item?.name || ''
+      const itemName: string = rawName.match(/^[一-龥]/) ? rawName : t(rawName)
       return chainPrefixes.some(p => itemName.startsWith(p))
     })
   }
@@ -156,13 +156,9 @@ export async function getLeaderboardDataApi(params: Leaderboard.RequestData) {
       let shopPrice: number | undefined
       let targetIndex = -1
       for (let i = 0; i < ingrList.length; i++) {
-        const hrid: string = ingrList[i].hrid || ""
+        const hrid: string = ingrList[i].hrid || ''
         const price = SHOP_FIXED_PRICES[hrid]
-        if (typeof price === "number") {
-          shopPrice = price
-          targetIndex = i
-          break
-        }
+        if (typeof price === 'number') { shopPrice = price; targetIndex = i; break }
       }
       if (shopPrice === undefined) return item
 
@@ -186,17 +182,13 @@ export async function getLeaderboardDataApi(params: Leaderboard.RequestData) {
   // 材质链筛选：选了材质链就自动过滤，不用再勾纯净火车
   // 纯净火车：所有非催化剂原料必须来自该项目下的任一材质链等级
   if ((params.pureOnly || !!params.tierChainKey) && params.project) {
-    const normProject = normalizeProject(params.project || "")
+    const normProject = normalizeProject(params.project || '')
     const chainList = TIER_CHAINS[normProject]
     if (chainList) {
       // 先按项目/动作类型过滤，只保留该项目下的物品
       const projectActionMap: Record<string, string> = {
-        裁缝: "tailoring",
-        锻造: "cheesesmithing",
-        制造: "crafting",
-        炼金: "alchemy",
-        烹饪: "cooking",
-        冲泡: "brewing"
+        '裁缝': 'tailoring', '锻造': 'cheesesmithing', '制造': 'crafting',
+        '炼金': 'alchemy', '烹饪': 'cooking', '冲泡': 'brewing'
       }
       const projAction = projectActionMap[normProject]
       if (projAction) {
@@ -222,16 +214,16 @@ export async function getLeaderboardDataApi(params: Leaderboard.RequestData) {
       }
       // 制造需要锻造链奶酪前缀（板甲 = 木材 + 奶酪）
       // 锻造需要制造链木材前缀（锤/枪 = 奶酪 + 原木）
-      if (normProject === "制造" || normProject === "锻造") {
-        const cheeseChain = TIER_CHAINS["锻造"]
+      if (normProject === '制造' || normProject === '锻造') {
+        const cheeseChain = TIER_CHAINS['锻造']
         if (cheeseChain) {
           for (const chain of cheeseChain) {
             for (const tier of chain.tiers) allProjectLabels.add(tier.label)
           }
         }
       }
-      if (normProject === "制造" || normProject === "锻造") {
-        const woodChain = TIER_CHAINS["制造"]
+      if (normProject === '制造' || normProject === '锻造') {
+        const woodChain = TIER_CHAINS['制造']
         if (woodChain) {
           for (const chain of woodChain) {
             for (const tier of chain.tiers) allProjectLabels.add(tier.label)
@@ -251,14 +243,15 @@ export async function getLeaderboardDataApi(params: Leaderboard.RequestData) {
       }
       const selectedPrefixes = new Set<string>(selectedLabels)
       for (const label of selectedLabels) {
-        for (const suffix of ["奶酪", "皮革", "布料"]) {
-          const short = label.replace(suffix, "")
+        for (const suffix of ['奶酪', '皮革', '布料']) {
+          const short = label.replace(suffix, '')
           if (short && short !== label) selectedPrefixes.add(short)
         }
       }
 
       const gameData = getGameDataApi()
-      const skipNames = new Set(["精通之油", "洞察之枝", "专精之线", "Butter Of Proficiency", "Branch Of Insight", "Thread Of Expertise"])
+      const skipNames = new Set(['精通之油', '洞察之枝', '专精之线',
+        'Butter Of Proficiency', 'Branch Of Insight', 'Thread Of Expertise'])
 
       profitList = profitList.filter((item: any) => {
         const ingrList = item.ingredientListWithPrice || item.ingredientList || []
@@ -266,14 +259,14 @@ export async function getLeaderboardDataApi(params: Leaderboard.RequestData) {
         if (ingrList.length === 0) return true
 
         // 收集配方中所有主原料（跳过催化和茶）
-        const mainIngs: { hrid: string, name: string }[] = []
+        const mainIngs: { hrid: string; name: string }[] = []
         for (const ing of ingrList) {
-          const hrid: string = ing.hrid || ""
+          const hrid: string = ing.hrid || ''
           const detail = gameData.itemDetailMap[hrid]
           if (!detail) continue
           const ingName: string = t(detail.name)
           if (skipNames.has(ingName) || skipNames.has(detail.name)) continue
-          if (ingName.includes("茶")) continue
+          if (ingName.includes('茶')) continue
           mainIngs.push({ hrid, name: ingName })
         }
         // 全是催化剂/茶 → 保留

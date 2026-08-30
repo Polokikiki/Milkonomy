@@ -1,10 +1,10 @@
 import type { RequestData } from "../leaderboard/type"
 import type Calculator from "@/calculator"
 import { calculatorConstructable, getCalculatorInstance, getStorageCalculatorItem } from "@/calculator/utils"
-import { NO_TAX_FACTOR, SELL_TAX_FACTOR } from "@/common/constants/market"
 import { getEquipmentTypeOf } from "@/common/utils/game"
 import { useFavoriteStoreOutside } from "@/pinia/stores/favorite"
 import { handleVolume1hSearch } from "../utils"
+import { SELL_TAX_FACTOR, NO_TAX_FACTOR } from "@/common/constants/market"
 /** 查 */
 export async function getFavoriteDataApi(params: RequestData) {
   await new Promise(resolve => setTimeout(resolve, 300))

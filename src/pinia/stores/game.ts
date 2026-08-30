@@ -160,9 +160,9 @@ export const useGameStore = defineStore("game", {
       //   return
       // }
       const url = import.meta.env.MODE === "development" ? "/" : "./"
-      // 开发环境市场数据走 vite 代理（见 vite.config.ts /milkyway-market），浏览器直连官方站国内常失败
       const MARKET_URLS = [
-        import.meta.env.MODE === "development" ? "/milkyway-market" : "https://www.milkywayidle.com/game_data/marketplace.json"
+        // "https://mooket.qi-e.top/market/api.json",
+        "https://www.milkywayidle.com/game_data/marketplace.json"
       ]
       // const LAST_MARKET_URL = `${url}data/market.json`
       const DATA_URL = `${url}data/data.json`
