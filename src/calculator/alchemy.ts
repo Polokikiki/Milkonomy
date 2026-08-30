@@ -6,18 +6,23 @@ import { COIN_HRID } from "@/pinia/stores/game"
 import Calculator from "."
 
 export interface AlchemyCalculatorConfig extends CalculatorConfig {
-
+  /** false 时产物剔除稀有掉落与额外精华掉落（只保留主掉落表），默认 true */
+  includeRare?: boolean
 }
 
 export type AlchemyCatalyst = "prime_catalyst" | "catalyst_of_transmutation" | "catalyst_of_decomposition" | "catalyst_of_coinification"
 
 abstract class AlchemyCalculator extends Calculator {
+  /** 是否计入稀有掉落与额外精华掉落 */
+  readonly includeRare: boolean
+
   get actionLevel(): number {
     return this.item.itemLevel
   }
 
   constructor(config: AlchemyCalculatorConfig) {
     super({ ...config, action: "alchemy" })
+    this.includeRare = config.includeRare !== false
   }
 
   get catalystRatio(): number {

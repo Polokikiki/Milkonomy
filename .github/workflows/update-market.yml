@@ -1,0 +1,45 @@
+name: Update Market Data
+# 每小时抓取官方 marketplace.json 写入 gh-pages 的 data/market.json，
+# 作为前端官方直连失败（国内被墙/DNS劫持）时的同源回退数据源（见 src/pinia/stores/game.ts fetchData）
+on:
+  schedule:
+    - cron: "23 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-market:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout gh-pages branch
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: gh-pages
+          fetch-depth: 1
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+
+      - name: Fetch official marketplace.json
+        shell: bash
+        run: |
+          mkdir -p data
+          curl -fsSL --retry 5 --retry-delay 10 https://www.milkywayidle.com/game_data/marketplace.json -o data/market.json
+          python3 -c "import json; d=json.load(open('data/market.json')); assert isinstance(d.get('timestamp'), (int, float)) and d.get('marketData'), 'invalid marketplace.json format'"
+
+      - name: Commit and push if changed
+        shell: bash
+        run: |
+          if git diff --quiet -- data/market.json; then
+            echo "No market data changes"
+            exit 0
+          fi
+          git add data/market.json
+          git commit -m "Update market snapshot [skip ci]"
+          git push origin gh-pages

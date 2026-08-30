@@ -109,7 +109,8 @@ export const useGameStore = defineStore("game", {
     marketData: null as MarketData | null,
     leaderboardCache: {} as { [key: string]: Calculator[] },
     enhanposerCache: {} as { [time: number]: WorkflowCalculator[] },
-    manualchemyCache: {} as { [time: number]: Calculator[] },
+    manualchemyCache: {} as { [key: string]: Calculator[] },
+    superAlchemyCache: {} as { [key: string]: any[] },
     jungleCache: {} as { [key: string]: WorkflowCalculator[] },
     junglestCache: {} as { [key: string]: EnhanceCalculator[] },
     inheritCache: {} as { [time: number]: ManufactureCalculator[] },
@@ -240,6 +241,17 @@ export const useGameStore = defineStore("game", {
     },
     clearManualchemyCache() {
       this.manualchemyCache = {}
+    },
+    getSuperAlchemyCache(key?: string) {
+      const cacheKey = key ?? String(this.marketData!.timestamp)
+      return this.superAlchemyCache[cacheKey]
+    },
+    setSuperAlchemyCache(list: any[], key?: string) {
+      this.clearSuperAlchemyCache()
+      this.superAlchemyCache[key ?? String(this.marketData!.timestamp)] = list
+    },
+    clearSuperAlchemyCache() {
+      this.superAlchemyCache = {}
     },
     getJungleCache(key: string) {
       return this.jungleCache[key]
