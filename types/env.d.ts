@@ -5,6 +5,9 @@ interface ImportMetaEnv {
   readonly VITE_ROUTER_HISTORY: "hash" | "html5"
   readonly VITE_PUBLIC_PATH: string
   readonly VITE_BUILD_MODE: "public" | "private"
+  /** 本地开发走实时内部接口（.env.development.local，不入库） */
+  readonly VITE_RT_INTERNAL?: string
+  readonly VITE_RT_TOKEN?: string
 }
 
 interface ImportMeta {

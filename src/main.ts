@@ -44,9 +44,20 @@ setInterval(() => {
   useGameStoreOutside().tryFetchData()
 }, 300 * 1000)
 
-setInterval(() => {
-  useGameStoreOutside().pollRealtime()
-}, 30 * 1000)
+// 实时价格轮询：仅前台可见时拉取，60s±20% 抖动，回前台立即补拉一次
+// （Worker 免费档 10 万请求/天，全量玩家 30s 固定轮询会打爆，边缘缓存之外的第二道保险）
+function pollRealtimeLoop() {
+  setTimeout(() => {
+    if (document.visibilityState === "visible") {
+      useGameStoreOutside().pollRealtime()
+    }
+    pollRealtimeLoop()
+  }, 60 * 1000 * (0.8 + Math.random() * 0.4))
+}
+pollRealtimeLoop()
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") useGameStoreOutside().pollRealtime()
+})
 
 app.use(VueGtag, {
   property: {
@@ -58,4 +69,8 @@ app.use(VueGtag, {
 router.isReady().then(() => {
   app.mount("#app")
 })
-useGameStoreOutside().hydratePersistentData().then(() => useGameStoreOutside().tryFetchData())
+// 隐私浏览器（如 Firefox Focus）下 IndexedDB 可能被拒，水合失败也必须继续拉网络数据
+useGameStoreOutside()
+  .hydratePersistentData()
+  .catch(e => console.error("[缓存水合失败]", e))
+  .finally(() => useGameStoreOutside().tryFetchData())

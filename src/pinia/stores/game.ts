@@ -113,6 +113,7 @@ export const useGameStore = defineStore("game", {
     superAlchemyCache: {} as { [key: string]: any[] },
     volHistory: [] as { ts: number, v: Record<string, number> }[],
     realtimeData: null as { ts: number, data: Record<string, { a: number, b: number, t: number }> } | null,
+    realtimeProbeAfter: 0,
     jungleCache: {} as { [key: string]: WorkflowCalculator[] },
     junglestCache: {} as { [key: string]: EnhanceCalculator[] },
     inheritCache: {} as { [time: number]: ManufactureCalculator[] },
@@ -124,12 +125,33 @@ export const useGameStore = defineStore("game", {
   }),
   actions: {
     async pollRealtime() {
+      // 退避期内直接跳过：公开通道空数据（PUBLIC=0）或 429 额度耗尽时，
+      // 全站访客继续 60s 轮询纯属烧 Worker 免费档额度，数据一个都拿不到
+      if (Date.now() < this.realtimeProbeAfter) return
       try {
-        const res = await fetch("https://rt.milkonomy.top/realtime.json", { cache: "no-store", signal: AbortSignal.timeout(10_000) })
-        if (!res.ok) return
+        // 未公开阶段：本地开发改走带密钥的内部接口，公开接口对外只回空数据（Worker 端 PUBLIC 开关控制）
+        const internal = import.meta.env.DEV ? import.meta.env.VITE_RT_INTERNAL : ""
+        const headers: Record<string, string> = {}
+        if (internal) {
+          if (import.meta.env.VITE_RT_TOKEN) headers["x-token"] = import.meta.env.VITE_RT_TOKEN
+        }
+        const res = await fetch(internal || "https://rt.milkonomy.top/realtime.json", {
+          cache: "no-store",
+          signal: AbortSignal.timeout(10_000),
+          headers
+        })
+        if (!res.ok) {
+          // 429 = 免费档额度耗尽（CF 1027）：10 分钟探测一次，额度重置后自动恢复
+          if (res.status === 429) this.realtimeProbeAfter = Date.now() + 10 * 60 * 1000
+          return
+        }
         const data = await res.json()
         if (data && data.data && Object.keys(data.data).length > 0) {
           this.realtimeData = data
+          this.realtimeProbeAfter = 0
+        } else {
+          // Worker PUBLIC=0 时公开接口回空 data：1 小时探测一次，PUBLIC=1 后自动恢复轮询
+          this.realtimeProbeAfter = Date.now() + 60 * 60 * 1000
         }
       } catch {
         // 域名未生效/网络不可达时静默
@@ -140,9 +162,10 @@ export const useGameStore = defineStore("game", {
         return
       }
 
+      // 存储被拒（隐私模式/配额满）时按无缓存处理，不能让异常打断数据加载链
       const [gameData, marketData] = await Promise.all([
-        getGameData(),
-        getMarketData()
+        getGameData().catch(() => null),
+        getMarketData().catch(() => null)
       ])
 
       this.gameData = gameData

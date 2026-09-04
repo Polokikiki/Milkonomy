@@ -459,7 +459,8 @@ export function getRealtimePriceOf(hrid: string, level: number = 0): { ask: numb
   const rt = useGameStoreOutside().realtimeData
   const key = `${hrid}@${level}`
   const snap = rt?.data?.[key]
-  if (snap && snap.t > Date.now() - 120_000) {
+  // 240s 窗口 = 上报批次 30s + 边缘缓存最长 ~120s + 余量（免费档边缘 TTL 下限所致）
+  if (snap && snap.t > Date.now() - 240_000) {
     return { ask: snap.a, bid: snap.b, isRealtime: true }
   }
   const p = getPriceOf(hrid, level)
