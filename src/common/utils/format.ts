@@ -59,6 +59,10 @@ export function percent(value: number, decimal = 2) {
 
 const priceConfig = ["", "K", "M", "B", "T"]
 export function price(value: number) {
+  // -1 是市场数据"无挂单"哨兵值，不能原样展示给玩家
+  if (value < 0) {
+    return "无单"
+  }
   for (let i = 0; i < priceConfig.length; i++) {
     if (Math.abs(value) < 10 ** ((i + 2) * 3 - 1)) {
       return `${number(value / (1000 ** i))}${priceConfig[i]}`

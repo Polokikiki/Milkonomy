@@ -28,6 +28,23 @@ export const privateRoutes: RouteRecordRaw[] = [
     ]
   },
   {
+    path: "/",
+    component: Layouts,
+    redirect: "/warehouse",
+    children: [
+      {
+        path: "warehouse",
+        component: () => import("@/pages/warehouse/index.vue"),
+        name: "Warehouse",
+        meta: {
+          title: t("仓库"),
+          svgIcon: "dashboard",
+          affix: false
+        }
+      }
+    ]
+  },
+  {
     path: "/alchemy-tools",
     component: Layouts,
     redirect: "/manualchemy",
@@ -46,7 +63,19 @@ export const privateRoutes: RouteRecordRaw[] = [
         path: "/alchemy-path",
         component: () => import("@/pages/alchemy-path/index.vue"),
         name: "AlchemyPath",
-        meta: { title: t("炼金路径"), svgIcon: "dashboard" }
+        meta: { title: t("物品炼金路径对比"), svgIcon: "dashboard" }
+      },
+      {
+        path: "/alchemy-chain",
+        component: () => import("@/pages/alchemy-chain/index.vue"),
+        name: "AlchemyChain",
+        meta: { title: t("炼金链条"), svgIcon: "dashboard" }
+      },
+      {
+        path: "/stone",
+        component: () => import("@/pages/stone/index.vue"),
+        name: "Stone",
+        meta: { title: t("贤者路径计算"), svgIcon: "dashboard" }
       },
       {
         path: "/super-alchemy",
