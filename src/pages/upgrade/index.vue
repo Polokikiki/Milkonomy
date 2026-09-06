@@ -256,3 +256,18 @@ watch(selectedPreset, () => {
     </el-card>
   </div>
 </template>
+
+<style scoped lang="scss">
+@media (max-width: 768px) {
+  // 预设/口径单选组按钮多时换行，避免横向溢出被裁剪（页面级滚动锁已禁横向滚动）
+  :deep(.el-radio-group) {
+    flex-wrap: wrap;
+    row-gap: 4px;
+  }
+
+  // 顶部配置行间距收紧
+  .flex-wrap {
+    row-gap: 8px;
+  }
+}
+</style>
