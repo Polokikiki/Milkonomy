@@ -191,7 +191,8 @@ interface CostGuideLeafRow {
 }
 
 const gearManufacture = ref(false)
-const bestManufacture = ref(false)
+/** 制作装备口径：single=单步配方；best=最佳制作方案（最便宜获取路径）；train=火车（从链条最底端一路做到目标） */
+const manufactureMode = ref<"single" | "best" | "train">("single")
 // 价格步进×5：开启后每点一次上下箭头走 5 档（仍沿游戏锁死网格，不脱格）
 const stepperTimes5 = useMemory("enhancer-stepper-times-5", false)
 // Independent buy-price status for the two cost blocks (do NOT mutate global buyStatus)
@@ -200,14 +201,14 @@ const enhancementCostBuyStatus = useMemory("enhancer-enhancement-cost-buy-status
 watch([
   () => manufactureIngredients.value,
   () => gearManufacture.value,
-  () => bestManufacture.value,
+  () => manufactureMode.value,
   () => gearCostBuyStatus.value,
   () => enhancementCostBuyStatus.value
 ], resetPrice, { deep: true })
 
 watch([
   () => gearManufacture.value,
-  () => bestManufacture.value,
+  () => manufactureMode.value,
   () => gearCostBuyStatus.value
 ], () => {
   recalcManufacturePlan()
@@ -274,7 +275,7 @@ function calcSingleStepIngredients(hrid: string) {
     : []
 }
 
-function calcBestManufacturePlan(hrid: string) {
+function calcBestManufacturePlan(hrid: string, trainOnly = false) {
   const item = getItemDetailOf(hrid)
   const projects: [string, Action][] = [
     [t("锻造"), "cheesesmithing"],
@@ -283,13 +284,16 @@ function calcBestManufacturePlan(hrid: string) {
   ]
 
   // Max steps for best manufacture plan search.
+  // - train（火车）: 始终走完整链条，从最底端做到目标
   // - charms: allow deeper chains by default
   // - non-charms:
   //   - if target gear is not buyable (-1): allow deeper chains to craft missing intermediates
   //   - otherwise keep it small for performance
-  const maxSteps = getEquipmentTypeOf(item) === "charm"
-    ? 7
-    : (getGearCostOriginPrice(hrid) === -1 ? 7 : 3)
+  const maxSteps = trainOnly
+    ? 10
+    : getEquipmentTypeOf(item) === "charm"
+      ? 7
+      : (getGearCostOriginPrice(hrid) === -1 ? 7 : 3)
 
   let best: {
     workflow: WorkflowCalculator
@@ -361,7 +365,16 @@ function calcBestManufacturePlan(hrid: string) {
         }
         const costPerItem = costPH / outputPH
 
-        if (!best || costPerItem < best.costPerItem) {
+        // 火车：优先最长链（从底端一路做到目标），同长取更便宜；否则取最便宜
+        const chainLen = wf.calculatorList.length
+        if (!best) {
+          best = { workflow: wf, outputPH, costPerItem }
+        } else if (trainOnly) {
+          const bestLen = best.workflow.calculatorList.length
+          if (chainLen > bestLen || (chainLen === bestLen && costPerItem < best.costPerItem)) {
+            best = { workflow: wf, outputPH, costPerItem }
+          }
+        } else if (costPerItem < best.costPerItem) {
           best = { workflow: wf, outputPH, costPerItem }
         }
       }
@@ -875,13 +888,13 @@ function recalcManufacturePlan() {
     return
   }
 
-  if (!bestManufacture.value) {
+  if (manufactureMode.value === "single") {
     manufactureIngredients.value = calcSingleStepIngredients(hrid)
     manufactureStepList.value = []
     return
   }
 
-  const bestPlan = calcBestManufacturePlan(hrid)
+  const bestPlan = calcBestManufacturePlan(hrid, manufactureMode.value === "train")
   if (!bestPlan) {
     // Fallback: still show single-step craft ingredients (so we don't fall back to market -1)
     // even if we failed to find a multi-step "best" plan.
@@ -1223,9 +1236,17 @@ watch(menuVisible, (value) => {
                 <el-checkbox v-model="gearManufacture">
                   {{ t('制作装备') }}
                 </el-checkbox>
-                <el-checkbox v-model="bestManufacture" :disabled="!gearManufacture">
-                  {{ t('最佳制作方案') }}
-                </el-checkbox>
+                <el-radio-group v-model="manufactureMode" size="small" :disabled="!gearManufacture">
+                  <el-radio-button value="single">
+                    {{ t('单步配方') }}
+                  </el-radio-button>
+                  <el-radio-button value="best">
+                    {{ t('最佳制作方案') }}
+                  </el-radio-button>
+                  <el-radio-button value="train">
+                    {{ t('火车（从头做）') }}
+                  </el-radio-button>
+                </el-radio-group>
                 <el-button size="small" type="primary" plain :disabled="!currentItem?.hrid" @click="openCostGuide">
                   {{ t('成本指导价') }}
                 </el-button>
@@ -1273,7 +1294,7 @@ watch(menuVisible, (value) => {
             <el-divider class="mt-2 mb-2" />
           </template>
 
-          <template v-if="gearManufacture && bestManufacture && manufactureStepList.length">
+          <template v-if="gearManufacture && manufactureMode !== 'single' && manufactureStepList.length">
             <div v-for="step in manufactureStepList" :key="step.title" class="mb-3">
               <div class="text-xs color-gray-500 mb-1">
                 {{ step.title }}
