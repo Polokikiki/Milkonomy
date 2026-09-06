@@ -3,6 +3,7 @@ import type Calculator from "@/calculator"
 import type { ItemDetail } from "~/game"
 import ItemIcon from "@@/components/ItemIcon/index.vue"
 import { useMemory } from "@@/composables/useMemory"
+import { Setting } from "@element-plus/icons-vue"
 import { ElMessage } from "element-plus"
 import { computed, ref, watch } from "vue"
 import { useI18n } from "vue-i18n"
@@ -11,6 +12,7 @@ import { getGameDataApi } from "@/common/apis/game"
 import { usePriceStatus } from "@/common/composables/usePriceStatus"
 import { NO_TAX_FACTOR, SELL_TAX_FACTOR } from "@/common/constants/market"
 import ActionConfig from "../dashboard/components/ActionConfig.vue"
+import ColumnSettings from "../dashboard/components/ColumnSettings.vue"
 import GameInfo from "../dashboard/components/GameInfo.vue"
 import PriceStatusSelect from "../dashboard/components/PriceStatusSelect.vue"
 
@@ -24,6 +26,22 @@ const includeRare = useMemory("alchemy-path-include-rare", true)
 const itemGroup = useMemory("alchemy-path-item-group", "all")
 // 自定义组：任意分组点亮物品★加入，仅影响"自定义"筛选的显示范围
 const customItems = useMemory("alchemy-path-custom-items", [] as string[])
+
+// 列设置：勾选显隐 + 拖拽排序（与首页/炼金/打野同款）
+const apColumnVisible = useMemory("ap-column-visible", {
+  bestMethod: true,
+  profitPH: true,
+  profitPP: true,
+  successRate: true,
+  expPH: true
+} as Record<string, boolean>)
+const apColumnOrder = useMemory("ap-column-order", [
+  "bestMethod",
+  "profitPH",
+  "profitPP",
+  "successRate",
+  "expPH"
+])
 function toggleCustom(hrid: string) {
   const index = customItems.value.indexOf(hrid)
   index === -1 ? customItems.value.push(hrid) : customItems.value.splice(index, 1)
@@ -313,6 +331,26 @@ watch(selectedItems, () => {
               </template>
             </el-table-column>
             <el-table-column :label="t('物品')">
+              <template #header>
+                <div class="flex items-center gap-2">
+                  <span>{{ t('物品') }}</span>
+                  <ColumnSettings
+                    :columns="[
+                      { key: 'bestMethod', label: '最优方式' },
+                      { key: 'profitPH', label: '利润 / h' },
+                      { key: 'profitPP', label: '利润 / 次' },
+                      { key: 'successRate', label: '成功率' },
+                      { key: 'expPH', label: '经验 / h' },
+                    ]" :visible="apColumnVisible" :order="apColumnOrder"
+                  >
+                    <template #reference>
+                      <el-icon :size="18" style="cursor: pointer" :title="t('列设置')">
+                        <Setting />
+                      </el-icon>
+                    </template>
+                  </ColumnSettings>
+                </div>
+              </template>
               <template #default="{ row }">
                 <div class="flex items-center gap-2">
                   <ItemIcon :hrid="row.item.hrid" />
@@ -320,36 +358,38 @@ watch(selectedItems, () => {
                 </div>
               </template>
             </el-table-column>
-            <el-table-column :label="t('最优方式')" align="center">
-              <template #default="{ row }">
-                <el-tag type="success">
-                  {{ row.paths[0].project }}
-                </el-tag>
-                <el-tooltip v-if="isAutoCatalyst && catalystHridOf(row.paths[0])" :content="catalystNameOf(row.paths[0])" placement="top">
-                  <ItemIcon :hrid="`/items/${catalystHridOf(row.paths[0])}`" :width="16" :height="16" class="ml-1 align-middle" />
-                </el-tooltip>
-              </template>
-            </el-table-column>
-            <el-table-column :label="t('利润 / h')" align="center">
-              <template #default="{ row }">
-                {{ row.paths[0].result.profitPHFormat }}
-              </template>
-            </el-table-column>
-            <el-table-column :label="t('利润 / 次')" align="center">
-              <template #default="{ row }">
-                {{ row.paths[0].result.profitPPFormat }}
-              </template>
-            </el-table-column>
-            <el-table-column :label="t('成功率')" align="center">
-              <template #default="{ row }">
-                {{ row.paths[0].result.successRateFormat }}
-              </template>
-            </el-table-column>
-            <el-table-column :label="t('经验 / h')" align="center">
-              <template #default="{ row }">
-                {{ row.paths[0].result.expPHFormat }}
-              </template>
-            </el-table-column>
+            <template v-for="colKey in apColumnOrder" :key="colKey">
+              <el-table-column v-if="colKey === 'bestMethod' && apColumnVisible.bestMethod" :label="t('最优方式')" align="center">
+                <template #default="{ row }">
+                  <el-tag type="success">
+                    {{ row.paths[0].project }}
+                  </el-tag>
+                  <el-tooltip v-if="isAutoCatalyst && catalystHridOf(row.paths[0])" :content="catalystNameOf(row.paths[0])" placement="top">
+                    <ItemIcon :hrid="`/items/${catalystHridOf(row.paths[0])}`" :width="16" :height="16" class="ml-1 align-middle" />
+                  </el-tooltip>
+                </template>
+              </el-table-column>
+              <el-table-column v-if="colKey === 'profitPH' && apColumnVisible.profitPH" :label="t('利润 / h')" align="center">
+                <template #default="{ row }">
+                  {{ row.paths[0].result.profitPHFormat }}
+                </template>
+              </el-table-column>
+              <el-table-column v-if="colKey === 'profitPP' && apColumnVisible.profitPP" :label="t('利润 / 次')" align="center">
+                <template #default="{ row }">
+                  {{ row.paths[0].result.profitPPFormat }}
+                </template>
+              </el-table-column>
+              <el-table-column v-if="colKey === 'successRate' && apColumnVisible.successRate" :label="t('成功率')" align="center">
+                <template #default="{ row }">
+                  {{ row.paths[0].result.successRateFormat }}
+                </template>
+              </el-table-column>
+              <el-table-column v-if="colKey === 'expPH' && apColumnVisible.expPH" :label="t('经验 / h')" align="center">
+                <template #default="{ row }">
+                  {{ row.paths[0].result.expPHFormat }}
+                </template>
+              </el-table-column>
+            </template>
           </el-table>
         </el-card>
       </el-col>

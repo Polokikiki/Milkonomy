@@ -55,7 +55,7 @@ const loading = ref(false)
 let lastOptions: SuperAlchemyOptions | null = null
 
 function load() {
-  if (!useGameStore().marketData) return
+  if (!useGameStore().marketData || !useGameStore().gameData) return
   loading.value = true
   setTimeout(() => {
     try {

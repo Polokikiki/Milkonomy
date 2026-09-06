@@ -16,6 +16,10 @@ const { t } = locales.global
 /** 查 */
 export async function getLeaderboardDataApi(params: Leaderboard.RequestData) {
   let profitList: Calculator[] = []
+  // 数据未就绪时返回空且不缓存，等 watch 到数据就绪后重算
+  if (!useGameStoreOutside().gameData || !useGameStoreOutside().marketData) {
+    return { list: [], total: 0 } as any
+  }
   if (useGameStoreOutside().getManualchemyCache()) {
     profitList = useGameStoreOutside().getManualchemyCache()
   } else {
@@ -27,7 +31,9 @@ export async function getLeaderboardDataApi(params: Leaderboard.RequestData) {
       console.error(e)
     }
 
-    useGameStoreOutside().setManualchemyCache(profitList)
+    if (profitList.length > 0) {
+      useGameStoreOutside().setManualchemyCache(profitList)
+    }
     ElMessage.success(t("计算完成，耗时{0}秒", [(Date.now() - startTime) / 1000]))
   }
   return handlePage(handleSort(handleSearch(profitList, params), params), params)
