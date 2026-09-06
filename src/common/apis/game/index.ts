@@ -245,7 +245,9 @@ export function getActionDetailOf(key: string) {
 export function getCommunityBuffDetailOf(hrid: string) {
   let result = _communityBuffTypeDetailMapCache[hrid]
   if (!result) {
-    result = getGameDataApi().communityBuffTypeDetailMap[hrid]
+    // 游戏数据未加载完成时返回 undefined，调用方需自行判空（模板首屏竞态）
+    const map = getGameDataApi()?.communityBuffTypeDetailMap
+    result = map?.[hrid]
     result && (_communityBuffTypeDetailMapCache[hrid] = result)
   }
   return result
@@ -267,7 +269,7 @@ export function getPersonalBuffDetailOf(hrid: string) {
 export function getAchievementTierDetailOf(hrid: string) {
   let result = _achievementTierDetailMapCache[hrid]
   if (!result) {
-    const map = getGameDataApi().achievementTierDetailMap
+    const map = getGameDataApi()?.achievementTierDetailMap
     if (!map) {
       return undefined
     }

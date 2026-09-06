@@ -1160,8 +1160,8 @@ function getAchievementEffect(type: AchievementTier) {
     </div>
 
     <template v-for="[key, communityBuff] in playerStore.config.communityBuffMap.entries()" :key="key">
-      <div v-if="communityBuff.level" class="community-buff ml-2">
-        <ItemIcon :hrid="getCommunityBuffDetailOf(communityBuff.hrid!).buff.typeHrid" :width="22" :height="22" />
+      <div v-if="communityBuff.level && getCommunityBuffDetailOf(communityBuff.hrid!)" class="community-buff ml-2">
+        <ItemIcon :hrid="getCommunityBuffDetailOf(communityBuff.hrid!)!.buff.typeHrid" :width="22" :height="22" />
         <div v-if="communityBuff.level" class="community-level">
           Lv.{{ communityBuff.level }}
         </div>
@@ -1385,7 +1385,7 @@ function getAchievementEffect(type: AchievementTier) {
         <div class="buff-tofu-grid">
           <div class="buff-tofu" v-for="row in communityBuffList.filter(item => communityBuffs ? communityBuffs.includes(item.type) : true)" :key="`community-${row.type}`">
             <div class="buff-tofu-head">
-              <ItemIcon :hrid="getCommunityBuffDetailOf(row.hrid!).buff.typeHrid" :width="22" :height="22" />
+              <ItemIcon v-if="getCommunityBuffDetailOf(row.hrid!)" :hrid="getCommunityBuffDetailOf(row.hrid!)!.buff.typeHrid" :width="22" :height="22" />
               <span>{{ t('等级') }}</span>
             </div>
             <el-input-number v-model="row.level" :min="0" :max="20" style="width: 90px" :controls="false" />
