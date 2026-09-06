@@ -267,10 +267,9 @@ const results = computed(() => {
             ? currentItem.value.price
             : currentItemOriginPrice.value
     const totalCostNoHourly = matCost + curentItemPrice
-    let totalCost = totalCostNoHourly + (enhancerStore.advancedConfig.hourlyRate ?? defaultConfig.hourlyRate) * (actions / calc.actionsPH)
-    if (!ignoreTax) {
-      totalCost *= (1 + marketTaxRate.value / 100)
-    }
+    // 补税在下方 guidePrice 处 ÷sellTaxFactor 统一完成（=总成本/95%，见注释公式）；
+    // 这里曾多乘一次 (1+税率)，导致指导价整体偏高 ~5%
+    const totalCost = totalCostNoHourly + (enhancerStore.advancedConfig.hourlyRate ?? defaultConfig.hourlyRate) * (actions / calc.actionsPH)
 
     /**
      * tag = 0时，利用工时费计算指导价

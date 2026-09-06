@@ -127,7 +127,8 @@ const marketTaxRate = computed<number>({
 
 onMounted(() => {
   applyPrefillFromRouteQuery({ selectItem: false })
-  enhancerStore.hrid && onSelect(getItemDetailOf(enhancerStore.hrid))
+  // 游戏数据未就绪时 getItemDetailOf 会抛错（数据为 null），等数据到了再恢复选择
+  if (gameStore.gameData && enhancerStore.hrid) onSelect(getItemDetailOf(enhancerStore.hrid))
 })
 
 watch(
@@ -189,7 +190,6 @@ interface CostGuideLeafRow {
 
 const gearManufacture = ref(false)
 const bestManufacture = ref(false)
-const lastGearManufacture = ref(false)
 // Independent buy-price status for the two cost blocks (do NOT mutate global buyStatus)
 const gearCostBuyStatus = useMemory("enhancer-gear-cost-buy-status", PriceStatus.ASK)
 const enhancementCostBuyStatus = useMemory("enhancer-enhancement-cost-buy-status", PriceStatus.ASK)
@@ -426,7 +426,7 @@ function getOriginPricePlaceholder(row: Ingredient) {
 }
 
 function getCostGuidePriceText(price: number) {
-  return price < 0 ? "-1" : Format.number(price)
+  return price < 0 ? "无单" : Format.number(price)
 }
 
 function getCostGuideSourceLabel(source: CostGuideRow["source"], project?: string) {
@@ -639,7 +639,7 @@ function getLeafShareText(totalCost: number) {
 }
 
 function getLeafUnitCostText(row: CostGuideLeafRow) {
-  if (row.totalCost < 0 || row.count <= 0) return "-1"
+  if (row.totalCost < 0 || row.count <= 0) return "-"
   return Format.number(row.totalCost / row.count)
 }
 
@@ -876,6 +876,10 @@ function onSelect(item: ItemDetail) {
   if (!item) {
     return
   }
+  if (!gameStore.gameData || !gameStore.marketData) {
+    ElMessage.warning(t("数据尚未就绪，请稍候再试"))
+    return
+  }
   enhancerStore.config.hrid = item.hrid
   currentItem.value = {
     hrid: item.hrid,
@@ -951,6 +955,10 @@ const results = computed(() => {
   if (!currentItem.value.hrid) {
     return []
   }
+  // 数据未就绪时价格/物品接口会抛错，先返回空等 watch 到数据后重算
+  if (!gameStore.gameData || !gameStore.marketData) {
+    return []
+  }
 
   // 预设依赖：计算器经 getBuffOf 等模块级变量读预设，Vue 追踪不到，显式读一次让预设切换能触发重算
   const playerConfig = usePlayerStore().config
@@ -982,7 +990,9 @@ const results = computed(() => {
     const totalCostNoHourly = matCost + gearCost
     let totalCost = totalCostNoHourly + (enhancerStore.hourlyRate ?? defaultConfig.hourlyRate) * (actions / calc.actionsPH)
     if (!ignoreTax) {
-      totalCost *= (1 + (enhancerStore.taxRate ?? defaultConfig.taxRate) / 100)
+      // 游戏税从到账里扣（到账=卖价×0.95），想净得 totalCost 挂单价须 ÷(1-税率)；
+      // 旧写法 ×(1+税率) 会少收 0.25%（×1.05×0.95=0.9975）
+      totalCost /= 1 - (enhancerStore.taxRate ?? defaultConfig.taxRate) / 100
     }
 
     const productPrice = typeof currentItem.value.productPrice === "number"
@@ -1064,8 +1074,6 @@ function resetPrice() {
   if (!currentItem.value.hrid) {
     return
   }
-  const modeChanged = lastGearManufacture.value !== gearManufacture.value
-  lastGearManufacture.value = gearManufacture.value
 
   // 触发一次computed
   currentItem.value = JSON.parse(JSON.stringify(currentItem.value))
@@ -1095,9 +1103,9 @@ function resetPrice() {
           return acc + (price * item.count)
         }, 0)
       : getGearCostOriginPrice(currentItem.value.hrid!)
-    if (modeChanged) {
-      currentItem.value.price = undefined
-    }
+    // 制作装备模式下价格由配方决定，输入框已禁用；遗留的手填值（如步进留下的 1）
+    // 会让输入框显示错值且计算按错价走，一律清空回退到 originPrice
+    currentItem.value.price = undefined
   }
 
   // After the deep clone above, `currentItem.protection` is no longer the same object

@@ -363,6 +363,8 @@ function recalcManufacturePlan() {
         return acc + price * item.count
       }, 0)
     : getGearCostOriginPrice(hrid)
+  // 制作装备模式下输入框禁用，清空遗留手填价（如步进留下的 1），显示与计算统一走 originPrice
+  currentItem.value.price = undefined
 }
 
 function buildNormalRows(target: number) {
@@ -389,7 +391,7 @@ function buildNormalRows(target: number) {
     const totalCostNoHourly = baseCost + matCost
     let totalCost = totalCostNoHourly + hourlyRate.value * (actions / calc.actionsPH)
     if (!ignoreTax.value) {
-      totalCost *= (1 + taxRate.value / 100)
+      totalCost /= 1 - taxRate.value / 100
     }
     const seconds = actions / calc.actionsPH * 3600
     rows.push({
@@ -468,7 +470,7 @@ function getBestPhilosopherPlan(target: number): PhilosopherPlan | null {
       const seconds = flow.totalActions / actionsPH * 3600
       let totalCost = totalCostNoHourly + hourlyRate.value * (flow.totalActions / actionsPH)
       if (!ignoreTax.value) {
-        totalCost *= (1 + taxRate.value / 100)
+        totalCost /= 1 - taxRate.value / 100
       }
 
       const materialRows: NodeMaterialRow[] = [{
@@ -735,6 +737,7 @@ watch(manufactureIngredients, () => {
         return acc + price * item.count
       }, 0)
     : getGearCostOriginPrice(currentItem.value.hrid!)
+  currentItem.value.price = undefined
 }, { deep: true })
 
 watch(targetLevel, (value) => {
