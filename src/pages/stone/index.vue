@@ -4,7 +4,7 @@ import { useMemory } from "@@/composables/useMemory"
 import * as Format from "@@/utils/format"
 import { Warning } from "@element-plus/icons-vue"
 import { ElMessage } from "element-plus"
-import { ref, watch } from "vue"
+import { computed, ref, watch } from "vue"
 import { useI18n } from "vue-i18n"
 import { computeStoneLeaderboard, type StoneLeaderboardResult } from "@/calculator/alchemyChain"
 import { getGameDataApi, getItemDetailOf } from "@/common/apis/game"
@@ -24,11 +24,18 @@ const includeRare = useMemory("stone-include-rare", true)
 const onPriceStatusChange = usePriceStatus("stone-price-status")
 function handlePriceStatusChange() {
   onPriceStatusChange()
-  compute()
+  // 立即 compute 会读到尚未刷新的旧价格状态（全局 status 由异步 watcher 更新），
+  // 真正的重算交给下面的 statuses watcher，保证按新设置取价
 }
 
 const gameStore = useGameStore()
 const stoneResult = ref<StoneLeaderboardResult | null>(null)
+
+// 现价按税后口径展示与比价（勾"计税"时 ×0.95：自己卖出一颗石头到手的是税后价）
+const stoneBidAfterTax = computed(() => {
+  if (!stoneResult.value) return -1
+  return stoneResult.value.stoneBid * (includeTax.value ? SELL_TAX_FACTOR : NO_TAX_FACTOR)
+})
 
 const itemName = (hrid: string) => t(getItemDetailOf(hrid)?.name ?? hrid)
 
@@ -37,7 +44,7 @@ const legendLines = [
   t("买价：去市场买这件来源物品要花的钱。带「自制」标签 = 市场没人卖，按自己做出来的材料成本估算。"),
   t("副产物抵扣：做一次不只出石头，还会搭着出别的东西，这些搭头卖掉（扣 5% 税）能回收的钱，直接从成本里减。例：耳环买价 500M，附带 7 只小耳环回收 31M，净投入就是 469M。"),
   t("单颗净成本：（买价 + 催化剂 − 副产物抵扣）÷ 平均每次出几颗，即搞到一颗石头实际花的钱。排行榜按它从便宜到贵排。"),
-  t("价差：贤者之石现价 − 单颗净成本。绿色 = 自己做比直接买一颗便宜，赚的就是这个数；红色 = 不如直接买。")
+  t("价差：贤者之石现价（税后到手）− 单颗净成本。绿色 = 自己做再卖比直接买一颗便宜，赚的就是这个数；红色 = 不如直接买。")
 ]
 
 function fmtStones(v: number) {
@@ -67,9 +74,10 @@ function compute() {
   }
 }
 
-// 进页面即算；设置变化、市场数据刷新（约每小时/5 分钟轮询）自动重算
+// 进页面即算；设置变化、市场数据刷新（约每小时/5 分钟轮询）、买卖价侧切换自动重算
 watch([catalystRank, includeTax, includeRare], compute, { immediate: true })
 watch(() => gameStore.marketData?.timestamp, () => compute())
+watch(() => [gameStore.buyStatus, gameStore.sellStatus], () => compute())
 </script>
 
 <template>
@@ -88,10 +96,10 @@ watch(() => gameStore.marketData?.timestamp, () => compute())
             <ItemIcon hrid="/items/philosophers_stone" :width="22" :height="22" />
             <span>{{ t('贤者路径计算') }}</span>
           </div>
-          <PriceStatusSelect @change="handlePriceStatusChange" />
         </div>
       </template>
       <div class="flex flex-wrap items-center gap-4">
+        <PriceStatusSelect @change="handlePriceStatusChange" />
         <div class="flex items-center flex-wrap gap-2">
           <span>{{ t('催化剂') }}</span>
           <el-radio-group v-model="catalystRank" size="small">
@@ -126,7 +134,10 @@ watch(() => gameStore.marketData?.timestamp, () => compute())
       <template #header>
         <div class="flex items-center justify-between flex-wrap gap-2">
           <span>{{ t('{0} 种来源参与排行（无卖单的按制造成本计入，{1} 种无法定价未计入）', [stoneResult.rows.length, stoneResult.excludedCount]) }}</span>
-          <span class="font-size-13px">{{ t('贤者之石现价') }}：{{ Format.price(stoneResult.stoneBid) }}</span>
+          <span class="font-size-13px">
+            {{ t('贤者之石现价') }}：{{ Format.price(stoneResult.stoneBid) }}
+            <template v-if="includeTax">（{{ t('税后') }}：{{ Format.price(stoneBidAfterTax) }}）</template>
+          </span>
         </div>
       </template>
       <el-table :data="stoneResult.rows" size="small" max-height="560">
@@ -235,8 +246,8 @@ watch(() => gameStore.marketData?.timestamp, () => compute())
             </el-tooltip>
           </template>
           <template #default="{ row }">
-            <span :class="(stoneResult.stoneBid - row.costPerStone) >= 0 ? 'color-green' : 'color-red'">
-              {{ Format.price(stoneResult.stoneBid - row.costPerStone) }}
+            <span :class="(stoneBidAfterTax - row.costPerStone) >= 0 ? 'color-green' : 'color-red'">
+              {{ Format.price(stoneBidAfterTax - row.costPerStone) }}
             </span>
           </template>
         </el-table-column>
