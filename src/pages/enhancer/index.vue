@@ -12,8 +12,10 @@ import { ManufactureCalculator } from "@/calculator/manufacture"
 import { getStorageCalculatorItem } from "@/calculator/utils"
 import { WorkflowCalculator } from "@/calculator/workflow"
 import { getItemDetailOf, getMarketDataApi, getPriceOf, priceStepOf } from "@/common/apis/game"
+import { getCraftCostOf } from "@/common/apis/game/craft"
 import { getEquipmentList } from "@/common/apis/player"
 import { useMemory } from "@/common/composables/useMemory"
+import { SHOP_FIXED_PRICES } from "@/common/config"
 import { getEquipmentTypeOf } from "@/common/utils/game"
 import { useEnhancerStore } from "@/pinia/stores/enhancer"
 import { COIN_HRID, PRICE_STATUS_LIST, PriceStatus, useGameStore } from "@/pinia/stores/game"
@@ -190,6 +192,8 @@ interface CostGuideLeafRow {
 
 const gearManufacture = ref(false)
 const bestManufacture = ref(false)
+// 价格步进×5：开启后每点一次上下箭头走 5 档（仍沿游戏锁死网格，不脱格）
+const stepperTimes5 = useMemory("enhancer-stepper-times-5", false)
 // Independent buy-price status for the two cost blocks (do NOT mutate global buyStatus)
 const gearCostBuyStatus = useMemory("enhancer-gear-cost-buy-status", PriceStatus.ASK)
 const enhancementCostBuyStatus = useMemory("enhancer-enhancement-cost-buy-status", PriceStatus.ASK)
@@ -223,13 +227,21 @@ function isDrink(hrid: string) {
   return getItemDetailOf(hrid).categoryHrid === "/item_categories/drink"
 }
 
+/** 无单回退采购价：商店固定价（实习护符等可无限买，仅强化页启用）→ 制造成本 */
+function fallbackBuyPrice(hrid: string, raw: number): number {
+  if (raw >= 0) return raw
+  const shop = SHOP_FIXED_PRICES[hrid]
+  if (typeof shop === "number") return shop
+  return getCraftCostOf(hrid)
+}
+
 function getGearCostOriginPrice(hrid: string, level?: number) {
   // Use `.ask` as "buying" price output; the selected status decides which market field is used.
-  return getPriceOf(hrid, level, gearCostBuyStatus.value, gameStore.sellStatus).ask
+  return fallbackBuyPrice(hrid, getPriceOf(hrid, level, gearCostBuyStatus.value, gameStore.sellStatus).ask)
 }
 
 function getEnhancementCostOriginPrice(hrid: string, level?: number) {
-  return getPriceOf(hrid, level, enhancementCostBuyStatus.value, gameStore.sellStatus).ask
+  return fallbackBuyPrice(hrid, getPriceOf(hrid, level, enhancementCostBuyStatus.value, gameStore.sellStatus).ask)
 }
 
 function calcSingleStepIngredients(hrid: string) {
@@ -743,7 +755,7 @@ function onProductPriceChange(value: number | undefined, oldValue: number | unde
     return
   }
 
-  const next = priceStepOf(base, high)
+  const next = stepPriceN(base as number, !!high)
   if (next <= 0) {
     _syncingProductPriceStep = true
     item.productPrice = -1
@@ -793,7 +805,16 @@ function resolveTierStep(value: number | undefined, oldValue: number | undefined
     return undefined
   }
 
-  const next = priceStepOf(base, high)
+  return stepPriceN(base as number, high)
+}
+
+/** 沿游戏锁死网格连走 n 档（每档重新取档位步长，跨档位自然过渡） */
+function stepPriceN(base: number, high: boolean): number {
+  const steps = stepperTimes5.value ? 5 : 1
+  let next = base
+  for (let i = 0; i < steps; i++) {
+    next = priceStepOf(next, high)
+  }
   return next > 0 ? next : -1
 }
 
@@ -1454,6 +1475,11 @@ watch(menuVisible, (value) => {
                   :controls="true"
                   @change="onProductPriceChange"
                 />
+              </div>
+              <div class="mt-1">
+                <el-checkbox v-model="stepperTimes5" size="small">
+                  {{ t('步进×5') }}
+                </el-checkbox>
               </div>
 
               <div
