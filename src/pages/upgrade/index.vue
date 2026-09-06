@@ -176,7 +176,7 @@ watch(selectedPreset, () => {
           {{ t("预设") }}：{{ preset.presetName }}
         </span>
       </template>
-      <el-alert type="info" :closable="false" class="mb-4" :title="t('基准=该专业当前等级下利润最高的N个项目（N=基准项目数）；提升量=换装后在N个项目上的平均提升；护符只算经验。建议装备后的 +N 为强化等级，成本为该强化等级的市场买价。')" />
+      <el-alert type="info" :closable="false" class="mb-4" :title="t('基准=该专业当前等级下利润最高的N个项目（N=基准项目数）；提升量=换装后在N个项目上的平均提升；护符只算经验。建议装备后的 +N 为强化等级，成本为该强化等级的市场买价。性价比列=每10万金币的提升量。')" />
       <template v-for="action in preset.actions" :key="`${preset.presetIndex}-${action.action}`">
         <div class="flex items-baseline gap-3 mt-2 mb-1 flex-wrap">
           <span class="font-bold text-base">{{ action.actionLabel }}</span>
@@ -231,13 +231,13 @@ watch(selectedPreset, () => {
             <template #header>
               <span class="inline-flex items-center justify-end gap-1">
                 {{ t("性价比") }}
-                <el-tooltip :content="t('性价比 = 平均每小时提升 ÷ 购买成本。数值越大，每 1 金币买到的提升越多。例：换装后每小时多赚 1,000 金币、装备花 100,000 → 性价比 = 1,000 ÷ 100,000 = 0.01')" placement="top">
+                <el-tooltip :content="t('性价比 = 平均每小时提升 ÷ 购买成本 × 100,000，即每花 10 万金币能买到的每小时提升量。数值越大越划算。例：换装后每小时多赚 500 金币、装备花 100 万 → 性价比 = 50，即每 10 万金币换每小时 +50。')" placement="top">
                   <el-icon class="cursor-help"><QuestionFilled /></el-icon>
                 </el-tooltip>
               </span>
             </template>
             <template #default="{ row }">
-              {{ Format.number(row.valueRate, 4) }}
+              {{ Format.number(row.valueRate * 100000, 1) }}
             </template>
           </el-table-column>
           <el-table-column :label="t('回本(天)')" width="100" align="right">

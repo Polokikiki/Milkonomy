@@ -316,6 +316,12 @@ export async function getUpgradeCompareApi(params: UpgradeCompareParams): Promis
 
         for (const cand of candidateList) {
           if (!cand.isTradable) continue
+          // 只往上推荐：候选物品档位（物品等级）低于现装的不考虑，
+          // 避免高强化低档货（经验口径等）压过高档现装的建议误判
+          if (currentEq?.hrid) {
+            const currentDetail = getItemDetailOf(currentEq.hrid)
+            if (currentDetail && cand.itemLevel < currentDetail.itemLevel) continue
+          }
           const sameHrid = cand.hrid === currentEq?.hrid
           for (const level of levelsFor(cand.hrid, params.evalMode, currentLevel)) {
             // 跳过与现装完全相同的（同物品同强化等级）
