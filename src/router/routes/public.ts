@@ -74,6 +74,23 @@ export const publicRoutes: RouteRecordRaw[] = [
   {
     path: "/",
     component: Layouts,
+    redirect: "/philosopher",
+    children: [
+      {
+        path: "philosopher",
+        component: () => import("@/pages/philosopher/index.vue"),
+        name: "Philosopher",
+        meta: {
+          title: t("贤者镜计算"),
+          itemIconHrid: "/items/philosophers_mirror",
+          affix: false
+        }
+      }
+    ]
+  },
+  {
+    path: "/",
+    component: Layouts,
     redirect: "/jungle",
     meta: {
       title: t("强化工具"),
@@ -148,23 +165,6 @@ export const publicRoutes: RouteRecordRaw[] = [
           title: t("超级强化分解"),
           affix: false,
           elIcon: "Box"
-        }
-      }
-    ]
-  },
-  {
-    path: "/",
-    component: Layouts,
-    redirect: "/philosopher",
-    children: [
-      {
-        path: "philosopher",
-        component: () => import("@/pages/philosopher/index.vue"),
-        name: "Philosopher",
-        meta: {
-          title: t("贤者镜计算"),
-          itemIconHrid: "/items/philosophers_mirror",
-          affix: false
         }
       }
     ]
