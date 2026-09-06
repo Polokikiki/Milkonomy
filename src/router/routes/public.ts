@@ -57,6 +57,23 @@ export const publicRoutes: RouteRecordRaw[] = [
   {
     path: "/",
     component: Layouts,
+    redirect: "/upgrade",
+    children: [
+      {
+        path: "upgrade",
+        component: () => import("@/pages/upgrade/index.vue"),
+        name: "Upgrade",
+        meta: {
+          title: t("装备优化"),
+          elIcon: "MagicStick",
+          affix: false
+        }
+      }
+    ]
+  },
+  {
+    path: "/",
+    component: Layouts,
     redirect: "/enhancer",
     children: [
       {

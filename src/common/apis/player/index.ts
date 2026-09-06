@@ -138,6 +138,11 @@ export function getActionConfigOf(action: Action) {
   return playerConfig.actionConfigMap.get(action) ?? defaultPlayerConfig.actionConfigMap.get(action)!
 }
 
+/** 获取默认 action 配置（不依赖当前预设） */
+export function getDefaultActionConfigOf(action: Action) {
+  return defaultPlayerConfig.actionConfigMap.get(action)!
+}
+
 export function getToolListOf(action: Action) {
   return equipmentList.filter(item => item.equipmentDetail?.type === `/equipment_types/${action}_tool`).sort((a, b) => a.itemLevel - b.itemLevel)
 }
@@ -227,13 +232,24 @@ export function getSealList() {
 // #endregion
 
 // #region buff计算
+export type BuffMap = Record<NoncombatStatsProp, number>
+
 function initBuffMap() {
   if (!getGameDataApi()) return
-  buffs = {} as Record<NoncombatStatsProp, number>
+  buffs = buildBuffMap(playerConfig)
+  console.log("buffs", buffs)
+}
+
+/**
+ * 以传入配置构建 buff 表（纯函数，不依赖当前激活预设）
+ */
+export function buildBuffMap(config: ActionConfig): BuffMap {
+  if (!getGameDataApi()) return {} as BuffMap
+  const buffs = {} as BuffMap
   const enhanceMultiplier = getGameDataApi().enhancementLevelTotalBonusMultiplierTable
   // 特殊装备
   for (const equipment of EQUIPMENT_LIST) {
-    const eq = getSpecialEquipmentOf(equipment)
+    const eq = config.specialEquimentMap.get(equipment) ?? defaultPlayerConfig.specialEquimentMap.get(equipment)!
     if (eq && eq.hrid) {
       const item = getItemDetailOf(eq.hrid!)
       item.equipmentDetail?.noncombatStats && Object.entries(item.equipmentDetail.noncombatStats).forEach(([key, value]) => {
@@ -245,7 +261,7 @@ function initBuffMap() {
 
   // 社区buff
   for (const communityBuff of COMMUNITY_BUFF_LIST) {
-    const cb = getCommunityBuffOf(communityBuff)
+    const cb = config.communityBuffMap.get(communityBuff) ?? defaultPlayerConfig.communityBuffMap.get(communityBuff)!
     if (cb && cb.hrid && cb.level) {
       const detail = getCommunityBuffDetailOf(cb.hrid!)
       const buff = detail.buff
@@ -276,7 +292,7 @@ function initBuffMap() {
     if (tier === "elite") {
       continue
     }
-    const achievementBuff = getAchievementBuffOf(tier)
+    const achievementBuff = config.achievementBuffMap.get(tier) ?? defaultPlayerConfig.achievementBuffMap.get(tier)!
     if (!achievementBuff?.enabled) {
       continue
     }
@@ -298,7 +314,7 @@ function initBuffMap() {
 
   for (const action of ACTION_LIST) {
     // 职业装备
-    const actionConfig = getActionConfigOf(action)
+    const actionConfig = config.actionConfigMap.get(action) ?? defaultPlayerConfig.actionConfigMap.get(action)!
     for (const ac of Object.values(actionConfig)) {
       if (ac && typeof ac === "object" && !Array.isArray(ac) && ac.hrid) {
         const item = getItemDetailOf(ac.hrid)
@@ -359,14 +375,16 @@ function initBuffMap() {
   }
 
   // 战斗房：全局经验+0.05%/级、稀有发现+0.2%/级
-  const combatHouseLevel = playerConfig.combatHouseLevel || 0
+  const combatHouseLevel = config.combatHouseLevel || 0
   if (combatHouseLevel > 0) {
     buffs.skillingExperience = (buffs.skillingExperience || 0) + 0.0005 * combatHouseLevel
     buffs.skillingRareFind = (buffs.skillingRareFind || 0) + 0.002 * combatHouseLevel
   }
 
   // 封印（全局单独 buff）
-  for (const seal of getSealsOf()) {
+  const sealsOf = (config.seals ?? defaultPlayerConfig.seals)
+  const sealList = Array.isArray(sealsOf) ? sealsOf : []
+  for (const seal of sealList) {
     const key = SEAL_BUFF_KEY_MAP[seal]
     const ratio = getSealBuffRatio(seal)
     if (key && ratio > 0) {
@@ -386,17 +404,17 @@ function initBuffMap() {
     RareFind: ACTIONS_ALL,
     Experience: ACTIONS_ALL
   }
-  for (const [type, config] of Object.entries(SHRINE_CONFIG)) {
-    const shrine = getShrineBuffOf(type as ShrineType)
+  for (const [type, shrineConfig] of Object.entries(SHRINE_CONFIG)) {
+    const shrine = config.shrineBuffMap.get(type as ShrineType) ?? defaultPlayerConfig.shrineBuffMap.get(type as ShrineType)!
     if (!shrine || !shrine.level) continue
-    const bonus = shrine.level * config.perLevel
-    const targetActions = SHRINE_ACTION_MAP[config.key] || ACTIONS_ALL
+    const bonus = shrine.level * shrineConfig.perLevel
+    const targetActions = SHRINE_ACTION_MAP[shrineConfig.key] || ACTIONS_ALL
     for (const action of targetActions) {
-      const prop = `${action}${config.key}` as NoncombatStatsProp
+      const prop = `${action}${shrineConfig.key}` as NoncombatStatsProp
       buffs[prop] = (buffs[prop] || 0) + bonus
     }
   }
-  console.log("buffs", buffs)
+  return buffs
 }
 
 function getSealBuffRatio(hrid: string): number {
@@ -473,6 +491,47 @@ function isGlobalNoncombatProp(prop: NoncombatStatsProp) {
 
 export function getBuffOf(action: Action, key: NoncombatStatsKey) {
   return (buffs[`${action}${key}`] || 0) + (buffs[`skilling${key}`] || 0)
+}
+
+/**
+ * 深度去响应式克隆：预设里 Map/对象可能嵌 Vue 代理，structuredClone 会抛 DataCloneError，
+ * 这里逐层 toRaw 后重建（配置只含 string/number/array/Map 等纯数据）
+ */
+function cloneRawConfig<T>(value: T): T {
+  const raw = toRaw(value)
+  if (raw instanceof Map) {
+    const map = new Map()
+    raw.forEach((v, k) => map.set(cloneRawConfig(k), cloneRawConfig(v)))
+    return map as unknown as T
+  }
+  if (Array.isArray(raw)) {
+    return raw.map(item => cloneRawConfig(item)) as unknown as T
+  }
+  if (raw && typeof raw === "object") {
+    const obj: Record<string, unknown> = {}
+    for (const key of Object.keys(raw)) {
+      obj[key] = cloneRawConfig((raw as Record<string, unknown>)[key])
+    }
+    return obj as unknown as T
+  }
+  return raw
+}
+
+/**
+ * 以指定配置为上下文同步执行计算（用于评估非当前预设/假想配装），
+ * 期间模块级 playerConfig/buffs 被替换，结束后恢复，不触碰 store/localStorage
+ */
+export function runWithPlayerContext<T>(config: ActionConfig, fn: () => T): T {
+  const savedConfig = playerConfig
+  const savedBuffs = buffs
+  playerConfig = cloneRawConfig(config)
+  buffs = buildBuffMap(playerConfig)
+  try {
+    return fn()
+  } finally {
+    playerConfig = savedConfig
+    buffs = savedBuffs
+  }
 }
 
 export function getDrinkConcentration() {

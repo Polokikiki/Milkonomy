@@ -20,6 +20,8 @@ defineProps<{
   equipments?: Equipment[]
   communityBuffs?: CommunityBuff[]
   achievementBuffs?: AchievementTier[]
+  /** 是否显示"对比"按钮（首页已移除对比功能，其他工具页保留） */
+  showCompare?: boolean
 }>()
 const emit = defineEmits<{
   toggleCompare: []
@@ -1146,13 +1148,15 @@ function getAchievementEffect(type: AchievementTier) {
       >
         {{ t("一键导入") }}
       </el-button>
-      <span style="width:1px;height:20px;background:var(--el-border-color);margin:0 4px" />
-      <el-button
-        class="compare-trigger-btn" size="small" plain style="padding:0 10px"
-        @click="emit('toggleCompare')"
-      >
-        {{ t("对比") }}
-      </el-button>
+      <template v-if="showCompare !== false">
+        <span style="width:1px;height:20px;background:var(--el-border-color);margin:0 4px" />
+        <el-button
+          class="compare-trigger-btn" size="small" plain style="padding:0 10px"
+          @click="emit('toggleCompare')"
+        >
+          {{ t("对比") }}
+        </el-button>
+      </template>
     </div>
 
     <template v-for="[key, communityBuff] in playerStore.config.communityBuffMap.entries()" :key="key">

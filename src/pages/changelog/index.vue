@@ -42,6 +42,15 @@ const { locale } = useI18n()
             <li>「炼金路径」更名「物品炼金路径对比」。</li>
             <li>修复「制作装备」模式下装备成本残留旧手填值的问题（曾显示 1 且利润按 1 计算），现一律按配方成本计算（强化计算、贤者镜计算两页）。</li>
           </ol>
+          <p><strong>七、新增「装备优化」页</strong></p>
+          <ol>
+            <li>选定预设后，按专业×部位（工具/衣服/裤子/披风/护符/特殊装备）扫描全市场装备及各强化等级，按性价比推荐最划算的升级——展示成本、平均提升、回本天数。</li>
+            <li>基准为该专业利润最高的前 N 个项目均值（可调）；护符按经验口径比较；性价比公式悬浮可见。</li>
+          </ol>
+          <p><strong>八、首页调整</strong></p>
+          <ol>
+            <li>移除首页「对比」功能（分解、强化分解、继承等工具页的对比保留）。</li>
+          </ol>
         </template>
         <template v-else>
           <p><strong>1. Quote Tax Fix (Important)</strong></p>
@@ -62,6 +71,13 @@ const { locale } = useI18n()
           <ol><li>Profit per day / per hour / per action are now sortable.</li></ol>
           <p><strong>6. Others & Fixes</strong></p>
           <ol><li>Page renamed; fixed stale hand-entered gear price in "Craft Gear" mode (showed 1 and computed with 1) — now always uses recipe cost.</li></ol>
+          <p><strong>7. New "Gear Optimizer" Page</strong></p>
+          <ol>
+            <li>Pick a preset and it scans the whole market across professions × slots (tools / gear / charms / special equipment) at every enhancement level, ranking upgrades by value — cost, average gain, payback days.</li>
+            <li>Baselines average the top-N most profitable items per profession (adjustable); charms are compared by experience; hover the value column for the formula.</li>
+          </ol>
+          <p><strong>8. Dashboard</strong></p>
+          <ol><li>Removed the dashboard "Compare" feature (kept in Decompose / Enhance-Decompose / Inherit tools).</li></ol>
         </template>
       </div>
     </details>
