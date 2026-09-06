@@ -632,5 +632,7 @@ export default {
   "选择预设后点击开始优化": "Pick a preset and click Optimize",
   "请先选择预设": "Select a preset first",
   "单步配方": "Single-step recipe",
-  "火车（从头做）": "Train (from scratch)"
+  "火车（从头做）": "Train (from scratch)",
+  "制作原料": "Craft ingredients",
+  "制作步骤": "Craft steps"
 }

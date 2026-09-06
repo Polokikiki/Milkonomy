@@ -193,6 +193,9 @@ interface CostGuideLeafRow {
 const gearManufacture = ref(false)
 /** 制作装备口径：single=单步配方；best=最佳制作方案（最便宜获取路径）；train=火车（从链条最底端一路做到目标） */
 const manufactureMode = ref<"single" | "best" | "train">("single")
+/** 原料表/制作步骤默认折叠，点击展开 */
+const ingredientsExpanded = ref<string[]>([])
+const stepsExpanded = ref<string[]>([])
 // 价格步进×5：开启后每点一次上下箭头走 5 档（仍沿游戏锁死网格，不脱格）
 const stepperTimes5 = useMemory("enhancer-stepper-times-5", false)
 // Independent buy-price status for the two cost blocks (do NOT mutate global buyStatus)
@@ -1262,44 +1265,9 @@ watch(menuVisible, (value) => {
               </div>
             </div>
           </template>
-          <template v-if="gearManufacture && manufactureIngredients.length">
-            <ElTable :data="manufactureIngredients" style="--el-table-border-color:none" :cell-style="{ padding: '0' }">
-              <el-table-column :label="t('物品')">
-                <template #default="{ row }">
-                  <ItemIcon :hrid="row.hrid" />
-                </template>
-              </el-table-column>
-              <el-table-column prop="count" :label="t('数量')">
-                <template #default="{ row }">
-                  {{ Format.number(row.count, 2) }}
-                </template>
-              </el-table-column>
-
-              <el-table-column :label="t('价格')" align="center" min-width="170">
-                <template #default="{ row }">
-                  <el-input-number
-                    v-if="row.hrid !== COIN_HRID"
-                    class="max-w-100%"
-                    style="width: 100%"
-                    v-model="row.price"
-                    :min="-1"
-                    :placeholder="getOriginPricePlaceholder(row)"
-                    :controls="true"
-                    controls-position="right"
-                    @change="(value, oldValue) => onGearIngredientPriceChange(row, value, oldValue)"
-                  />
-                </template>
-              </el-table-column>
-            </ElTable>
-            <el-divider class="mt-2 mb-2" />
-          </template>
-
-          <template v-if="gearManufacture && manufactureMode !== 'single' && manufactureStepList.length">
-            <div v-for="step in manufactureStepList" :key="step.title" class="mb-3">
-              <div class="text-xs color-gray-500 mb-1">
-                {{ step.title }}
-              </div>
-              <ElTable :data="step.ingredients" style="--el-table-border-color:none" :cell-style="{ padding: '0' }" size="small">
+          <el-collapse v-if="gearManufacture && manufactureIngredients.length" v-model="ingredientsExpanded">
+            <el-collapse-item :title="t('制作原料')" name="ingredients">
+              <ElTable :data="manufactureIngredients" style="--el-table-border-color:none" :cell-style="{ padding: '0' }">
                 <el-table-column :label="t('物品')">
                   <template #default="{ row }">
                     <ItemIcon :hrid="row.hrid" />
@@ -1307,13 +1275,52 @@ watch(menuVisible, (value) => {
                 </el-table-column>
                 <el-table-column prop="count" :label="t('数量')">
                   <template #default="{ row }">
-                    {{ Format.number(row.count, 4) }}
+                    {{ Format.number(row.count, 2) }}
+                  </template>
+                </el-table-column>
+
+                <el-table-column :label="t('价格')" align="center" min-width="170">
+                  <template #default="{ row }">
+                    <el-input-number
+                      v-if="row.hrid !== COIN_HRID"
+                      class="max-w-100%"
+                      style="width: 100%"
+                      v-model="row.price"
+                      :min="-1"
+                      :placeholder="getOriginPricePlaceholder(row)"
+                      :controls="true"
+                      controls-position="right"
+                      @change="(value, oldValue) => onGearIngredientPriceChange(row, value, oldValue)"
+                    />
                   </template>
                 </el-table-column>
               </ElTable>
-            </div>
-            <el-divider class="mt-2 mb-2" />
-          </template>
+            </el-collapse-item>
+          </el-collapse>
+          <el-divider v-if="gearManufacture && manufactureIngredients.length" class="mt-2 mb-2" />
+
+          <el-collapse v-if="gearManufacture && manufactureMode !== 'single' && manufactureStepList.length" v-model="stepsExpanded">
+            <el-collapse-item :title="t('制作步骤')" name="steps">
+              <div v-for="step in manufactureStepList" :key="step.title" class="mb-3">
+                <div class="text-xs color-gray-500 mb-1">
+                  {{ step.title }}
+                </div>
+                <ElTable :data="step.ingredients" style="--el-table-border-color:none" :cell-style="{ padding: '0' }" size="small">
+                  <el-table-column :label="t('物品')">
+                    <template #default="{ row }">
+                      <ItemIcon :hrid="row.hrid" />
+                    </template>
+                  </el-table-column>
+                  <el-table-column prop="count" :label="t('数量')">
+                    <template #default="{ row }">
+                      {{ Format.number(row.count, 4) }}
+                    </template>
+                  </el-table-column>
+                </ElTable>
+              </div>
+            </el-collapse-item>
+          </el-collapse>
+          <el-divider v-if="gearManufacture && manufactureMode !== 'single' && manufactureStepList.length" class="mt-2 mb-2" />
 
           <ElTable :data="[currentItem]" :show-header="false" style="--el-table-border-color:none">
             <el-table-column>
