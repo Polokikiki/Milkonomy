@@ -303,6 +303,8 @@ function calcBestManufacturePlan(hrid: string, trainOnly = false) {
     outputPH: number
     costPerItem: number
   } | undefined
+  /** 火车模式用：按链长记录各自最便宜方案（各级底端买价已按市场/商店取低计入） */
+  const bestByLength = new Map<number, { workflow: WorkflowCalculator, outputPH: number, costPerItem: number }>()
 
   for (const [projectLast, actionLast] of projects) {
     for (const [project, action] of projects) {
@@ -368,19 +370,30 @@ function calcBestManufacturePlan(hrid: string, trainOnly = false) {
         }
         const costPerItem = costPH / outputPH
 
-        // 火车：优先最长链（从底端一路做到目标），同长取更便宜；否则取最便宜
+        // 火车：按链长先分组；最佳：直接取最便宜
         const chainLen = wf.calculatorList.length
-        if (!best) {
-          best = { workflow: wf, outputPH, costPerItem }
-        } else if (trainOnly) {
-          const bestLen = best.workflow.calculatorList.length
-          if (chainLen > bestLen || (chainLen === bestLen && costPerItem < best.costPerItem)) {
-            best = { workflow: wf, outputPH, costPerItem }
+        if (trainOnly) {
+          const prev = bestByLength.get(chainLen)
+          if (!prev || costPerItem < prev.costPerItem) {
+            bestByLength.set(chainLen, { workflow: wf, outputPH, costPerItem })
           }
-        } else if (costPerItem < best.costPerItem) {
+        } else if (!best || costPerItem < best.costPerItem) {
           best = { workflow: wf, outputPH, costPerItem }
         }
       }
+    }
+  }
+
+  if (trainOnly) {
+    // 全链 vs 少一步（买底端再做）：底端商店/市场买价比自己造便宜时跳过第一步制造
+    const lengths = [...bestByLength.keys()].sort((a, b) => b - a)
+    if (!lengths.length) {
+      return undefined
+    }
+    best = bestByLength.get(lengths[0])!
+    const buyBase = lengths.length > 1 && lengths[1] === lengths[0] - 1 ? bestByLength.get(lengths[1]) : undefined
+    if (buyBase && buyBase.costPerItem < best.costPerItem) {
+      best = buyBase
     }
   }
 
