@@ -9,13 +9,16 @@ const props = withDefaults(defineProps<{
   fallbackBase: number
   disabled?: boolean
   width?: string
+  /** 物品强化等级：≥1 按强化品档位步进（默认 0=白板档） */
+  level?: number
 }>(), {
   modelValue: undefined,
   min: 0,
   max: 5000000000,
   placeholder: "",
   disabled: false,
-  width: "120px"
+  width: "120px",
+  level: 0
 })
 
 const emit = defineEmits<{
@@ -63,7 +66,7 @@ function resolveTierStep(value: number | undefined, oldValue: number | undefined
     return clamp(value)
   }
 
-  const next = priceStepOf(base, high)
+  const next = priceStepOf(base, high, props.level)
   return clamp(next > 0 ? next : props.min)
 }
 

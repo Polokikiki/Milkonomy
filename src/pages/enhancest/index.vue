@@ -70,7 +70,7 @@ const currentDecompose = ref({
 
 const defaultConfig = {
   hourlyRate: 5000000,
-  taxRate: 5,
+  taxRate: 4,
   enhanceLevel: 10,
   originLevel: 0,
   escapeLevel: -1

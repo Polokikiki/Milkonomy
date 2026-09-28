@@ -116,7 +116,7 @@ const KEY_PREFIX = "enhancer-"
 function loadConfig(): EnhancerConfig {
   try {
     const cfg = JSON.parse(localStorage.getItem(`${KEY_PREFIX}config`) || "{}")
-    // 市场税率随游戏版本走（2→5→4），旧存值 2/5 迁移到当前税率 4（advancedConfig 的 taxRate 是溢价率，不迁移）
+    // 市场税率随游戏版本走（2→5→4），旧存值 2/5 迁移到当前税率 4
     if (cfg.taxRate === 2 || cfg.taxRate === 5) {
       cfg.taxRate = 4
     }
@@ -136,6 +136,10 @@ function saveConfig(item: EnhancerConfig) {
 function loadAdvancedConfig(): EnhancerConfig {
   try {
     const cfg = JSON.parse(localStorage.getItem(`${KEY_PREFIX}advancedConfig`) || "{}")
+    // 强化模拟页「溢价率%」仅作展示不参与公式；旧默认 2/5 跟随税率迁移，自行调高的值（10/15 等）保留
+    if (cfg.taxRate === 2 || cfg.taxRate === 5) {
+      cfg.taxRate = 4
+    }
     return {
       ignoreTax: !!cfg.ignoreTax,
       ...cfg

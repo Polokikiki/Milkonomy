@@ -11,7 +11,7 @@ import { EnhanceCalculator } from "@/calculator/enhance"
 import { ManufactureCalculator } from "@/calculator/manufacture"
 import { getStorageCalculatorItem } from "@/calculator/utils"
 import { WorkflowCalculator } from "@/calculator/workflow"
-import { getItemDetailOf, getMarketDataApi, getPriceOf, priceStepOf } from "@/common/apis/game"
+import { getItemDetailOf, getMarketDataApi, getPriceOf, priceStepOf, priceStepValueOf } from "@/common/apis/game"
 import { getCraftCostOf } from "@/common/apis/game/craft"
 import { guardedPriceOf, robustPriceOf } from "@/common/apis/game/priceGuard"
 import { getEquipmentList } from "@/common/apis/player"
@@ -829,7 +829,7 @@ function onProductPriceChange(value: number | undefined, oldValue: number | unde
     return
   }
 
-  const next = stepPriceN(base as number, !!high)
+  const next = stepPriceN(base as number, !!high, enhanceLevel)
   if (next <= 0) {
     _syncingProductPriceStep = true
     item.productPrice = -1
@@ -851,7 +851,7 @@ let _syncingGearPriceStep = false
 let _syncingEnhancementCostPriceStep = false
 let _syncingProtectionPriceStep = false
 
-function resolveTierStep(value: number | undefined, oldValue: number | undefined, marketPrice: number) {
+function resolveTierStep(value: number | undefined, oldValue: number | undefined, marketPrice: number, level: number = 0) {
   if (typeof value !== "number") {
     return undefined
   }
@@ -879,15 +879,15 @@ function resolveTierStep(value: number | undefined, oldValue: number | undefined
     return undefined
   }
 
-  return stepPriceN(base as number, high)
+  return stepPriceN(base as number, high, level)
 }
 
-/** 沿游戏锁死网格连走 n 档（每档重新取档位步长，跨档位自然过渡） */
-function stepPriceN(base: number, high: boolean): number {
+/** 沿游戏锁死网格连走 n 档（每档重新取档位步长，跨档位自然过渡）；level ≥ 1 走强化品档 */
+function stepPriceN(base: number, high: boolean, level: number = 0): number {
   const steps = stepperTimes5.value ? 5 : 1
   let next = base
   for (let i = 0; i < steps; i++) {
-    next = priceStepOf(next, high)
+    next = priceStepOf(next, high, level)
   }
   return next > 0 ? next : -1
 }
@@ -900,6 +900,18 @@ const productMarketPrice = computed(() => {
   }
   const level = enhancerStore.enhanceLevel ?? defaultConfig.enhanceLevel
   return getPriceOf(item.hrid, level, PriceStatus.ASK, PriceStatus.BID)
+})
+
+/** 游戏可挂单区间：围绕最低卖单价 ±12%（三组样本反推：时空手+7 23.2M→20.4M~26M 等），端点吸附当前网格 */
+const listingBand = computed(() => {
+  const ask = productMarketPrice.value?.ask
+  if (!ask || ask <= 0) {
+    return null
+  }
+  const level = enhancerStore.enhanceLevel ?? defaultConfig.enhanceLevel
+  const step = priceStepValueOf(ask, level)
+  const snap = (v: number) => Math.round(v / step) * step
+  return { low: snap(ask * 0.88), high: snap(ask * 1.12) }
 })
 
 /** 与利润计算同口径的有效卖价：手填价优先，否则按全局卖出状态换算（含天价守卫） */
@@ -916,7 +928,7 @@ const effectiveProductSellPrice = computed(() => {
   return guardedPriceOf(item.hrid, level, "bid")
 })
 
-/** 卖价超出当前市场挂单区间（最高买单价 ~ 最低卖单价）时提示，防止利润虚高 */
+/** 卖价超出可挂单区间上限（最低卖单价×1.12）或低于当前最高买单价时提示，防止利润虚高 */
 const productPriceHint = computed<{ type: "warning" | "info", text: string } | null>(() => {
   const market = productMarketPrice.value
   const hrid = currentItem.value?.hrid
@@ -929,8 +941,9 @@ const productPriceHint = computed<{ type: "warning" | "info", text: string } | n
     return { type: "warning", text: t("当前买单价异常偏高，已按近期参考价计算") }
   }
   const price = effectiveProductSellPrice.value
-  if (market.ask > 0 && price > market.ask) {
-    return { type: "warning", text: t("卖价已高于当前最低卖单价，需市价上行才可能成交，利润可能虚高") }
+  const bandHigh = listingBand.value?.high
+  if (bandHigh && price > bandHigh) {
+    return { type: "warning", text: t("卖价已超出可挂单区间上限，需市价上行才可能成交，利润可能虚高") }
   }
   if (market.bid > 0 && price < market.bid) {
     return { type: "warning", text: t("卖价已低于当前最高买单价，直接卖给买单更划算") }
@@ -942,6 +955,13 @@ const productPriceHint = computed<{ type: "warning" | "info", text: string } | n
     return { type: "info", text: t("该等级当前无卖单挂价，卖价缺少市场参照") }
   }
   return null
+})
+
+/** 目标等级切换后，旧等级的手填售价不再适用，清空回自动（跟随新等级市场价） */
+watch(() => enhancerStore.enhanceLevel, () => {
+  if (currentItem.value && typeof currentItem.value.productPrice === "number") {
+    currentItem.value.productPrice = undefined
+  }
 })
 
 function onGearIngredientPriceChange(row: Ingredient, value: number | undefined, oldValue: number | undefined) {
@@ -957,7 +977,7 @@ function onGearIngredientPriceChange(row: Ingredient, value: number | undefined,
 
 function onGearPriceChange(value: number | undefined, oldValue: number | undefined) {
   if (_syncingGearPriceStep || !currentItem.value.hrid) return
-  const next = resolveTierStep(value, oldValue, currentItem.value.originPrice)
+  const next = resolveTierStep(value, oldValue, currentItem.value.originPrice, enhancerStore.originLevel ?? 0)
   if (next === undefined) return
   _syncingGearPriceStep = true
   currentItem.value.price = next
@@ -1642,6 +1662,9 @@ watch(menuVisible, (value) => {
                   }}
                   ~
                   {{ productMarketPrice && productMarketPrice.ask > 0 ? Format.money(productMarketPrice.ask) : t('无卖单') }}
+                </div>
+                <div v-if="listingBand">
+                  {{ t('可挂单区间') }}：{{ Format.money(listingBand.low) }} ~ {{ Format.money(listingBand.high) }}
                 </div>
                 <div
                   v-if="productPriceHint"

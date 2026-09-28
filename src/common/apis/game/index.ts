@@ -77,7 +77,7 @@ const SPECIAL_PRICE: Record<string, () => MarketItemPrice> = {
   })
 }
 
-function convertPriceOfStatus(price: MarketItemPrice, buyStatus: PriceStatus, sellStatus: PriceStatus) {
+function convertPriceOfStatus(price: MarketItemPrice, buyStatus: PriceStatus, sellStatus: PriceStatus, level: number = 0) {
   function convert(status: PriceStatus, side: "ask" | "bid") {
     const result = { price: -1 }
     switch (status) {
@@ -90,13 +90,13 @@ function convertPriceOfStatus(price: MarketItemPrice, buyStatus: PriceStatus, se
       case PriceStatus.ASK_LOW:
         result.price = price.ask
         if (result.price > 0) {
-          result.price = priceStepOf(result.price, false)
+          result.price = priceStepOf(result.price, false, level)
         }
         break
       case PriceStatus.BID_HIGH:
         result.price = price.bid
         if (result.price > 0) {
-          result.price = priceStepOf(result.price, true)
+          result.price = priceStepOf(result.price, true, level)
         }
         break
       case PriceStatus.MARKET:
@@ -116,48 +116,71 @@ function convertPriceOfStatus(price: MarketItemPrice, buyStatus: PriceStatus, se
   }
 }
 
-const priceStep = [
-  [0, 1],
-  [500, 2],
-  [1000, 5],
-  [3000, 10]
-]
+/** 白板（level 0）网格：合法价格必须是它的整倍数（打字输入精度） */
+function whiteboardGridOf(price: number): number {
+  if (price < 500) return 1
+  if (price < 1000) return 2
+  const k = Math.floor(Math.log10(price))
+  return (price < 5 * 10 ** k ? 1 : 5) * 10 ** (k - 3)
+}
+
+/** 强化品（level ≥ 1）网格：整十进制 5×10^(k-3)；10K 以下样本稀疏取兜底 */
+function enhancedGridOf(price: number): number {
+  if (price < 10000) {
+    return Math.max(whiteboardGridOf(price), price >= 1000 ? 5 : 1)
+  }
+  const k = Math.floor(Math.log10(price))
+  return 5 * 10 ** (k - 3)
+}
+
+/** 向下/向上取整到 3 位有效数字（游戏挂单框的「档位」吸附粒度） */
+function floorTo3Sig(v: number): number {
+  if (v <= 0) return v
+  const q = 10 ** (Math.floor(Math.log10(v)) - 2)
+  return Math.floor(v / q) * q
+}
+
+function ceilTo3Sig(v: number): number {
+  if (v <= 0) return v
+  const q = 10 ** (Math.floor(Math.log10(v)) - 2)
+  return Math.ceil(v / q) * q
+}
+
 /**
- * 举例（2026-08 游戏补丁后价格增量细化至原来的 1/10）：
- * priceStepOf(300,true) = 301
- * priceStepOf(300,false) = 299
- * priceStepOf(570,true) = 572
- * priceStepOf(570,false) = 568
- * priceStepOf(1000,true) = 1005
- * priceStepOf(1000,false) = 998
- * priceStepOf(100000,true) = 100500
- * priceStepOf(100000,false) = 99800
+ * 2026-09-27 游戏补丁后的挂单价格增量（挂单框 ＋/－ 一跳 = 站点步进与左低价/右高价换算的「一档」）。
+ * 规则（玩家实测时空手+7 连点序列反推，六跳全吻合）：价格 ×(1+r) 后吸附到 3 位有效数字档位——
+ * 强化品 r=2.1%，白板 r=0.42%（恒 5 倍，与补丁传闻「白板 0.33~0.44%、强化 5 倍 1.67~2.22%」吻合；
+ * 低价段自然复现旧行为 300→301、570→572）。
+ * 实测序列验证：23.2M→23.6M→24.0M→24.5M→25.0M→25.5M→26.0M
+ * （×1.021 后取整：23.687→23.6、24.096→24.0、24.504→24.5…）。
+ * 另有网格层（priceStepValueOf，合法价格精度，比档位细）：由 09-28/09-29 快照只取补丁后新挂单价
+ * 分带求 GCD 实证（白板 1358 点 / 强化 1500 点零违例），用于可挂单区间端点吸附等。
  * @param price 原价
- * @param high true加价, false减价
+ * @param high true加价(×(1+r)向下吸附), false减价(÷(1+r)向上吸附)
+ * @param level 物品强化等级（≥1 走强化品档）
  */
-export function priceStepOf(price: number, high: boolean = true) {
+export function priceStepOf(price: number, high: boolean = true, level: number = 0) {
   if (price <= 0) {
     return -1
   }
-  // 先将price按十进制转为0~3000的范围
-  let dec = 0
-  while (price > 3000) {
-    price /= 10
-    dec += 1
+  const ratio = level >= 1 ? 1.021 : 1.0042
+  if (high) {
+    const next = floorTo3Sig(price * ratio)
+    if (next > price) return next
+    // 涨幅不足一个档位粒度时（如白板低价段 0.42% < 档位间距），进到下一个 3 位有效数字档
+    const q = 10 ** (Math.floor(Math.log10(price)) - 2)
+    return Math.floor(price / q) * q + q
   }
-  // 找到对应的step和stepIndex
-  let highStepIndex = 0
-  let lowStepIndex = 0
-  for (let i = 0; i < priceStep.length; i++) {
-    if (price <= priceStep[i][0]) {
-      highStepIndex = lowStepIndex = i - 1
-      if (price === priceStep[i][0]) {
-        highStepIndex = i
-      }
-      break
-    }
-  }
-  return high ? (price + priceStep[highStepIndex][1]) * 10 ** dec : (price - priceStep[lowStepIndex][1]) * 10 ** dec
+  const prev = ceilTo3Sig(price / ratio)
+  if (prev < price) return prev
+  const q = 10 ** (Math.floor(Math.log10(price)) - 2)
+  return Math.ceil(price / q) * q - q
+}
+
+/** 当前网格的单档步长值（合法价格精度；用于把任意数值吸附到合法网格，如可挂单区间端点取整） */
+export function priceStepValueOf(price: number, level: number = 0): number {
+  if (price <= 0) return 1
+  return level >= 1 ? enhancedGridOf(price) : whiteboardGridOf(price)
 }
 
 export function getPriceOf(hrid: string, level: number = 0, buyStatus: PriceStatus = currentBuyStatus, sellStatus: PriceStatus = currentSellStatus): MarketItemPrice {
@@ -180,7 +203,7 @@ export function getPriceOf(hrid: string, level: number = 0, buyStatus: PriceStat
       avg: priceItem?.avg ?? -1,
       vol: priceItem?.vol ?? -1
     }
-    return convertPriceOfStatus(price, buyStatus, sellStatus)
+    return convertPriceOfStatus(price, buyStatus, sellStatus, level)
   }
 
   // Cache key MUST include price status; otherwise calling getPriceOf(hrid, 0, ..., BID_HIGH)
