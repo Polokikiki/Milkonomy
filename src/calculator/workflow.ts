@@ -37,6 +37,8 @@ export class WorkflowCalculator extends Calculator {
 
   calculatorList: Arrayable<Calculator>[] = []
   configs: Arrayable<StorageCalculatorItem>[] = []
+  /** 基准动作（复合名「N步X(Y)」里的 X）：最高利润步骤去重按它与单步行归组，避免复合名永不等于单步名导致去重失效 */
+  baseProject: string
   /**
    * 是否启用跨步用料平衡：
    * - false（默认）：workMultiplier 仅按相邻阶段产物-消耗匹配，跨步消耗的物料按市场补齐、不占用上游工时
@@ -48,7 +50,7 @@ export class WorkflowCalculator extends Calculator {
   /**
    * configs为工作流顺序排列
    */
-  constructor(configs: Arrayable<StorageCalculatorItem>[], project: string, sellTaxFactor: number = SELL_TAX_FACTOR, crossStepBalance: boolean = false) {
+  constructor(configs: Arrayable<StorageCalculatorItem>[], project: string, sellTaxFactor: number = SELL_TAX_FACTOR, crossStepBalance: boolean = false, baseProject?: string) {
     let last = configs[configs.length - 1]
     if (Array.isArray(last)) {
       last = last[0]
@@ -60,6 +62,7 @@ export class WorkflowCalculator extends Calculator {
     })
     this.setSellTaxFactor(sellTaxFactor)
     this.crossStepBalance = crossStepBalance
+    this.baseProject = baseProject ?? project
     this.configs = configs
 
     for (let i = configs.length - 1; i >= 0; i--) {

@@ -116,71 +116,108 @@ function convertPriceOfStatus(price: MarketItemPrice, buyStatus: PriceStatus, se
   }
 }
 
-/** 白板（level 0）网格：合法价格必须是它的整倍数（打字输入精度） */
-function whiteboardGridOf(price: number): number {
-  if (price < 500) return 1
-  if (price < 1000) return 2
-  const k = Math.floor(Math.log10(price))
-  return (price < 5 * 10 ** k ? 1 : 5) * 10 ** (k - 3)
-}
+/**
+ * 官方价格档位（2026-09-29 自游戏客户端 JS 反解的 binGap 原逻辑）。
+ * 依据：从 2 累加到 10^12 生成的档位数与官方一致（普通 6184 档、强化 1346 档）；
+ * 玩家实测时空手+7 连点序列 23.2M→23.6M→24.0M→24.5M→25.0M→25.5M→26.0M 逐跳吻合
+ * （23 前缀档距 400K、跨入 24 前缀变 500K 的突变即两位前缀换档）。
+ * 补丁说明原文：挂单价间隔 0.33%~0.44%，强化品(+1 起)用 5 倍间距(1.67%~2.22%)。
+ */
+const BIN_GAP_UNIT_TIERS: ReadonlyArray<readonly [number, number]> = [
+  [12, 4],
+  [15, 5],
+  [18, 6],
+  [24, 8],
+  [30, 10],
+  [36, 12],
+  [48, 16],
+  [60, 20],
+  [75, 25],
+  [90, 30]
+]
 
-/** 强化品（level ≥ 1）网格：整十进制 5×10^(k-3)；10K 以下样本稀疏取兜底 */
-function enhancedGridOf(price: number): number {
-  if (price < 10000) {
-    return Math.max(whiteboardGridOf(price), price >= 1000 ? 5 : 1)
+function tightBinGapUnit(prefix: number): number {
+  for (const [threshold, unit] of BIN_GAP_UNIT_TIERS) {
+    if (prefix < threshold) return unit
   }
-  const k = Math.floor(Math.log10(price))
-  return 5 * 10 ** (k - 3)
+  return 40
 }
 
-/** 向下/向上取整到 3 位有效数字（游戏挂单框的「档位」吸附粒度） */
-function floorTo3Sig(v: number): number {
-  if (v <= 0) return v
-  const q = 10 ** (Math.floor(Math.log10(v)) - 2)
-  return Math.floor(v / q) * q
+/** 挂单档位间距（官方 binGap）：enhanced=强化品（+1 起，官方 5 倍间距） */
+export function binGapOf(price: number, enhanced: boolean): number {
+  const s = String(Math.floor(price))
+  const n = s.length
+  if (n <= 2) return 1
+  if (n === 3) {
+    const d = s[0]
+    if (enhanced) return d === "1" ? 2 : d <= "3" ? 5 : d <= "7" ? 10 : 20
+    return d <= "3" ? 1 : d <= "7" ? 2 : 4
+  }
+  const base = tightBinGapUnit(Number(s.slice(0, 2))) * 10 ** (n - 4)
+  return enhanced ? 5 * base : base
 }
 
-function ceilTo3Sig(v: number): number {
-  if (v <= 0) return v
-  const q = 10 ** (Math.floor(Math.log10(v)) - 2)
-  return Math.ceil(v / q) * q
+/** 懒生成官方完整阶梯（普通 6184 档 / 强化 1346 档，与官方提取数一致） */
+let ladderCache: { normal: number[], enhanced: number[] } | null = null
+function getLadder(enhanced: boolean): number[] {
+  if (!ladderCache) {
+    const build = (enh: boolean) => {
+      const arr: number[] = [2]
+      let p = 2
+      while (p < 1e12) {
+        p += binGapOf(p, enh)
+        if (p > 1e12) break
+        arr.push(p)
+      }
+      return arr
+    }
+    ladderCache = { normal: build(false), enhanced: build(true) }
+  }
+  return enhanced ? ladderCache.enhanced : ladderCache.normal
 }
 
 /**
- * 2026-09-27 游戏补丁后的挂单价格增量（挂单框 ＋/－ 一跳 = 站点步进与左低价/右高价换算的「一档」）。
- * 规则（玩家实测时空手+7 连点序列反推，六跳全吻合）：价格 ×(1+r) 后吸附到 3 位有效数字档位——
- * 强化品 r=2.1%，白板 r=0.42%（恒 5 倍，与补丁传闻「白板 0.33~0.44%、强化 5 倍 1.67~2.22%」吻合；
- * 低价段自然复现旧行为 300→301、570→572）。
- * 实测序列验证：23.2M→23.6M→24.0M→24.5M→25.0M→25.5M→26.0M
- * （×1.021 后取整：23.687→23.6、24.096→24.0、24.504→24.5…）。
- * 另有网格层（priceStepValueOf，合法价格精度，比档位细）：由 09-28/09-29 快照只取补丁后新挂单价
- * 分带求 GCD 实证（白板 1358 点 / 强化 1500 点零违例），用于可挂单区间端点吸附等。
+ * 官方档位上下一档：在完整阶梯上二分查找，非档位价（如补丁前老单的价）按方向吸附到最近合法档——
+ * 与游戏挂单框行为一致。
+ * 边界：最低价 2，减到 2 以下回到 0（官方行为）。
+ * 举例：
+ * priceStepOf(570, true) = 572
+ * priceStepOf(23200000, true, 7) = 23600000（档位价逐档走）
+ * priceStepOf(481000000, true, 7) = 下一合法档（补丁前老价吸附）
  * @param price 原价
- * @param high true加价(×(1+r)向下吸附), false减价(÷(1+r)向上吸附)
- * @param level 物品强化等级（≥1 走强化品档）
+ * @param high true加价(吸附到上一档), false减价(吸附到下一档)
+ * @param level 物品强化等级（≥1 走强化品阶梯）
  */
 export function priceStepOf(price: number, high: boolean = true, level: number = 0) {
   if (price <= 0) {
     return -1
   }
-  const ratio = level >= 1 ? 1.021 : 1.0042
+  const ladder = getLadder(level >= 1)
+  let lo = 0
+  let hi = ladder.length - 1
   if (high) {
-    const next = floorTo3Sig(price * ratio)
-    if (next > price) return next
-    // 涨幅不足一个档位粒度时（如白板低价段 0.42% < 档位间距），进到下一个 3 位有效数字档
-    const q = 10 ** (Math.floor(Math.log10(price)) - 2)
-    return Math.floor(price / q) * q + q
+    if (price >= ladder[hi]) return ladder[hi]
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1
+      if (ladder[mid] > price) hi = mid
+      else lo = mid + 1
+    }
+    return ladder[lo]
   }
-  const prev = ceilTo3Sig(price / ratio)
-  if (prev < price) return prev
-  const q = 10 ** (Math.floor(Math.log10(price)) - 2)
-  return Math.ceil(price / q) * q - q
+  if (price <= ladder[0]) return 0
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1
+    if (ladder[mid] < price) lo = mid
+    else hi = mid - 1
+  }
+  return ladder[lo]
 }
 
-/** 当前网格的单档步长值（合法价格精度；用于把任意数值吸附到合法网格，如可挂单区间端点取整） */
-export function priceStepValueOf(price: number, level: number = 0): number {
-  if (price <= 0) return 1
-  return level >= 1 ? enhancedGridOf(price) : whiteboardGridOf(price)
+/** 把任意数值四舍五入到 3 位有效数字（可挂单区间端点显示用） */
+export function priceSnapOf(value: number): number {
+  if (!(value > 0)) return value
+  const q = 10 ** (Math.floor(Math.log10(value)) - 2)
+  return Math.round(value / q) * q
 }
 
 export function getPriceOf(hrid: string, level: number = 0, buyStatus: PriceStatus = currentBuyStatus, sellStatus: PriceStatus = currentSellStatus): MarketItemPrice {

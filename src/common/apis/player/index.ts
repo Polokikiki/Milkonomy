@@ -30,7 +30,8 @@ const SEAL_BUFF_KEY_MAP: Record<string, NoncombatStatsKey | undefined> = {
   "/items/seal_of_processing": "Processing",
   "/items/seal_of_gourmet": "Gourmet",
   "/items/seal_of_wisdom": "Experience",
-  "/items/seal_of_rare_find": "RareFind"
+  "/items/seal_of_rare_find": "RareFind",
+  "/items/seal_of_enhancing_success": "Success"
 }
 
 const ACTIONS_ALL = [...ACTION_LIST] as Action[]
@@ -312,7 +313,9 @@ export function buildBuffMap(config: ActionConfig): BuffMap {
     const level = liveLevel !== undefined ? liveLevel : cb.level
     if (!level) continue
     const detail = getCommunityBuffDetailOf(cb.hrid!)
-    const buff = detail.buff
+    // 新版游戏数据已无 moo_card 类型详情，防御性跳过
+    const buff = detail?.buff
+    if (!buff) continue
     for (const actionType in detail.usableInActionTypeMap) {
       const action = getKeyOf(actionType) as Action
       if (buff.typeHrid === "/buff_types/action_speed") {

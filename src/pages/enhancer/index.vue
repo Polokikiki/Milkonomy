@@ -11,7 +11,7 @@ import { EnhanceCalculator } from "@/calculator/enhance"
 import { ManufactureCalculator } from "@/calculator/manufacture"
 import { getStorageCalculatorItem } from "@/calculator/utils"
 import { WorkflowCalculator } from "@/calculator/workflow"
-import { getItemDetailOf, getMarketDataApi, getPriceOf, priceStepOf, priceStepValueOf } from "@/common/apis/game"
+import { getItemDetailOf, getMarketDataApi, getPriceOf, priceSnapOf, priceStepOf } from "@/common/apis/game"
 import { getCraftCostOf } from "@/common/apis/game/craft"
 import { guardedPriceOf, robustPriceOf } from "@/common/apis/game/priceGuard"
 import { getEquipmentList } from "@/common/apis/player"
@@ -882,7 +882,7 @@ function resolveTierStep(value: number | undefined, oldValue: number | undefined
   return stepPriceN(base as number, high, level)
 }
 
-/** 沿游戏锁死网格连走 n 档（每档重新取档位步长，跨档位自然过渡）；level ≥ 1 走强化品档 */
+/** 沿官方档位连走 n 档（每档重新取档距，跨前缀自然过渡）；level ≥ 1 走强化品 5 倍档距 */
 function stepPriceN(base: number, high: boolean, level: number = 0): number {
   const steps = stepperTimes5.value ? 5 : 1
   let next = base
@@ -908,10 +908,7 @@ const listingBand = computed(() => {
   if (!ask || ask <= 0) {
     return null
   }
-  const level = enhancerStore.enhanceLevel ?? defaultConfig.enhanceLevel
-  const step = priceStepValueOf(ask, level)
-  const snap = (v: number) => Math.round(v / step) * step
-  return { low: snap(ask * 0.88), high: snap(ask * 1.12) }
+  return { low: priceSnapOf(ask * 0.88), high: priceSnapOf(ask * 1.12) }
 })
 
 /** 与利润计算同口径的有效卖价：手填价优先，否则按全局卖出状态换算（含天价守卫） */

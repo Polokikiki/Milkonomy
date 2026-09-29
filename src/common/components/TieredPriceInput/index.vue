@@ -9,7 +9,7 @@ const props = withDefaults(defineProps<{
   fallbackBase: number
   disabled?: boolean
   width?: string
-  /** 物品强化等级：≥1 按强化品档位步进（默认 0=白板档） */
+  /** 物品强化等级：≥1 按强化品 5 倍档距步进（默认 0=普通档） */
   level?: number
 }>(), {
   modelValue: undefined,

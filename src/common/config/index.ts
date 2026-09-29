@@ -29,7 +29,8 @@ export const DEFAULT_COMMUNITY_BUFF_LIST: CommunityBuffItem[] = [
   { type: "moo_card", hrid: "/community_buff_types/moo_card", level: undefined },
   { type: "experience", hrid: "/community_buff_types/experience", level: undefined },
   { type: "gathering_quantity", hrid: "/community_buff_types/gathering_quantity", level: undefined },
-  { type: "production_efficiency", hrid: "/community_buff_types/production_efficiency", level: undefined }
+  { type: "production_efficiency", hrid: "/community_buff_types/production_efficiency", level: undefined },
+  { type: "enhancing_speed", hrid: "/community_buff_types/enhancing_speed", level: undefined }
 ]
 
 export const DEFAULT_ACHIEVEMENT_BUFF_LIST: AchievementBuffItem[] = [

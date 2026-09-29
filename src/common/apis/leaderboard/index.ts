@@ -314,7 +314,8 @@ export async function getLeaderboardDataApi(params: Leaderboard.RequestData) {
         noHrid.push(row)
         continue
       }
-      const key = `${row.project}|${hrid}`
+      // 火车行的 project 是复合名（「2步制造(裁缝)」），与单步行「制造」永不相等会让去重形同虚设；按 baseProject 归组
+      const key = `${(row as any).baseProject ?? row.project}|${hrid}`
       const prev = bestOf.get(key)
       if (!prev || (row.result?.profitPH ?? -Infinity) > (prev.result?.profitPH ?? -Infinity)) {
         bestOf.set(key, row)
@@ -414,7 +415,7 @@ function calcAllFlowProfit(sellTaxFactor: number, crossStepBalance: boolean, inc
           let projectName = t("{0}步{1}", [configs.length, project])
           const otherProject = configs.find(conf => conf.project !== project)
           otherProject && (projectName += t("({0})", [otherProject?.project]))
-          handlePush(profitList, new WorkflowCalculator(configs, projectName, sellTaxFactor, crossStepBalance))
+          handlePush(profitList, new WorkflowCalculator(configs, projectName, sellTaxFactor, crossStepBalance, project))
         }
 
         // D4更新后，会出现多步动作中出现不同Action组合的情况
@@ -432,7 +433,7 @@ function calcAllFlowProfit(sellTaxFactor: number, crossStepBalance: boolean, inc
       let projectName = t("{0}步{1}", [configs.length, project])
       const otherProject = configs.find(conf => conf.project !== project)
       otherProject && (projectName += t("({0})", [otherProject?.project]))
-      handlePush(profitList, new WorkflowCalculator(configs, projectName, sellTaxFactor, crossStepBalance))
+      handlePush(profitList, new WorkflowCalculator(configs, projectName, sellTaxFactor, crossStepBalance, project))
     }
   })
   return profitList

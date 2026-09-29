@@ -49,7 +49,8 @@ export const COMMUNITY_BUFF_LIST = [
   "moo_card",
   "experience",
   "gathering_quantity",
-  "production_efficiency"
+  "production_efficiency",
+  "enhancing_speed"
 ]
 
 export const ACHIEVEMENT_TIER_LIST = [

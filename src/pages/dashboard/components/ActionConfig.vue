@@ -488,7 +488,8 @@ const COMMUNITY_BUFF_HRID_TO_TYPE: Record<string, CommunityBuff> = {
   "/community_buff_types/moo_card": "moo_card",
   "/community_buff_types/experience": "experience",
   "/community_buff_types/gathering_quantity": "gathering_quantity",
-  "/community_buff_types/production_efficiency": "production_efficiency"
+  "/community_buff_types/production_efficiency": "production_efficiency",
+  "/community_buff_types/enhancing_speed": "enhancing_speed"
 }
 
 // 检查装备是否对某个技能生效
