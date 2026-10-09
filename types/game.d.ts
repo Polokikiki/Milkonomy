@@ -130,7 +130,7 @@ export interface Buff {
   duration: number
 }
 
-type Action = typeof ACTION_LIST[number]
+export type Action = typeof ACTION_LIST[number]
 type ActionType = `/action_types/${Action}`
 type Equipment = typeof EQUIPMENT_LIST[number] | `${Action}_tool`
 type EquipmentType = `/equipment_types/${Equipment}`

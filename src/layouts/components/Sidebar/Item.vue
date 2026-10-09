@@ -1,21 +1,22 @@
 <script lang="ts" setup>
 import type { RouteRecordRaw } from "vue-router"
+import { useDevice } from "@@/composables/useDevice"
 import { isExternal } from "@@/utils/validate"
 import path from "path-browserify"
-import { useDevice } from "@@/composables/useDevice"
+import { useI18n } from "vue-i18n"
 import ItemIcon from "@/common/components/ItemIcon/index.vue"
 import Link from "./Link.vue"
 
+const props = withDefaults(defineProps<Props>(), {
+  basePath: ""
+})
 const { isMobile } = useDevice()
+const { t } = useI18n()
 
 interface Props {
   item: RouteRecordRaw
   basePath?: string
 }
-
-const props = withDefaults(defineProps<Props>(), {
-  basePath: ""
-})
 
 /** 是否始终显示根菜单 */
 const alwaysShowRootMenu = computed(() => props.item.meta?.alwaysShow)
@@ -61,6 +62,9 @@ function resolvePath(routePath: string) {
         <component v-else-if="theOnlyOneChild.meta.elIcon" :is="theOnlyOneChild.meta.elIcon" class="el-icon" />
         <template v-if="theOnlyOneChild.meta.title" #title>
           <span class="title">{{ theOnlyOneChild.meta.title }}</span>
+          <el-tag v-if="theOnlyOneChild.meta.beta" size="small" effect="plain" class="beta-tag">
+            {{ t("测试版") }}
+          </el-tag>
         </template>
       </el-menu-item>
     </Link>
@@ -71,6 +75,9 @@ function resolvePath(routePath: string) {
       <ItemIcon v-else-if="props.item.meta?.itemIconHrid" :hrid="props.item.meta.itemIconHrid" :width="18" :height="18" class="item-icon" />
       <component v-else-if="props.item.meta?.elIcon" :is="props.item.meta.elIcon" class="el-icon" />
       <span v-if="props.item.meta?.title" class="title">{{ props.item.meta.title }}</span>
+      <el-tag v-if="props.item.meta?.beta" size="small" effect="plain" class="beta-tag">
+        {{ t("测试版") }}
+      </el-tag>
     </template>
     <template v-if="props.item.children">
       <Item
@@ -107,5 +114,15 @@ function resolvePath(routePath: string) {
 
 .title {
   @extend %ellipsis;
+}
+
+.beta-tag {
+  flex-shrink: 0;
+  margin-left: 6px;
+  padding: 0 4px;
+  height: 18px;
+  line-height: 16px;
+  font-size: 11px;
+  border-radius: 4px;
 }
 </style>

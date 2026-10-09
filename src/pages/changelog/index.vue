@@ -10,6 +10,59 @@ const { locale, t } = useI18n()
     <h2 class="changelog-header">
       {{ t("更新日志") }}<PolokikiBadge />
     </h2>
+    <!-- ================== v2.9.0 ================== -->
+    <details open>
+      <summary style="cursor:pointer;font-weight:bold;font-size:18px;margin:16px 0 8px">
+        v2.9.0 — 2026-10-09
+      </summary>
+      <div style="padding-left:16px">
+        <template v-if="locale !== 'en'">
+          <p><strong>一、新栏目「链条自定义」（测试版）</strong></p>
+          <ol>
+            <li>可视化结点图：把「买什么 → 做什么 → 卖什么」画成一张链路图，自由连线组合多步生产链（制造 / 炼金 / 采集可混搭，支持转化循环回流）。</li>
+            <li>自动配平 + 自动排版：以第一行数量为基准，其余数量按配方与成功率期望自动推平；节点自动分层排版，也可拖动微调。</li>
+            <li>内置预置高利润配方与演示链，一键读取；支持保存自己的方案，快捷键 / 全屏 / 手机端均已适配。</li>
+            <li>冲泡配方入图：茶/咖啡类产物可直接作为链条产物参与配平；「自定义价格」与首页同源，手动价在本页同样生效。</li>
+          </ol>
+          <p><strong>二、链条页口径修复（重要）</strong></p>
+          <ol>
+            <li>链上产出此前未按成功率折算、卖出未计市场税，两处已对齐首页利润榜口径：分解链 / 转化链的「链上终值」从此更保守也更真实（此前偏高）。</li>
+            <li>同名产物双条目误并（如分解主产物炼金精华 ×20 与平凡掉落精华 ×1.6 被当成同一条）：已按条目分开计价，「链条自定义」页同步修复。</li>
+            <li>已与首页利润榜全量对拍：43 条单步链与首页利润严格相等，725 条分解行全部通过校验；超炼页补充「选优目标 = 每件净收益」口径说明。</li>
+            <li>游戏数据精炼物品名由「(R)」改为「★」后词典翻译失效：已加回退兼容，精炼物品在各语言下恢复显示译名。</li>
+          </ol>
+          <p><strong>三、鸣谢</strong></p>
+          <ol>
+            <li>本期更新由赞助商 Joey 赞助的智谱（GLM）会员提供开发支持，特此鸣谢！</li>
+            <li>新栏目「链条自定义」基于 gcaxe 的开源项目 milkonomy（MIT 协议）改编而来，感谢原作者的代码分享！</li>
+          </ol>
+        </template>
+        <template v-else>
+          <p><strong>1. New "Custom Chain" column (beta)</strong></p>
+          <ol>
+            <li>Visual node graph: draw "what to buy → what to craft → what to sell" as one graph; wire up multi-step production chains freely (crafting / alchemy / gathering can mix, transmute loop-backs supported).</li>
+            <li>Auto balancing + auto layout: quantities propagate from the first row via recipes and success-rate expectations; nodes are layered automatically and can also be dragged.</li>
+            <li>Ships with preset high-profit recipes and a demo chain; save your own plans. Hotkeys / fullscreen / mobile all supported.</li>
+            <li>Brewing joins the graph: tea/coffee products can now be chain outputs; custom prices are shared with the homepage and respected here.</li>
+          </ol>
+          <p><strong>2. Chain page caliber fixes (important)</strong></p>
+          <ol>
+            <li>Chain outputs were not discounted by success rate and direct sales ignored the market tax; both now match the homepage leaderboard: decompose/transmute chain totals are more conservative and more accurate (previously overstated).</li>
+            <li>Duplicate same-name product entries were merged by mistake (e.g. main alchemy essence ×20 vs mundane essence drop ×1.6): now priced per entry; the Custom Chain page got the same fix.</li>
+            <li>Verified against the homepage leaderboard: 43 single-step chains match homepage profits exactly and all 725 decompose rows pass the check. Super-alchemy page adds a "selection target = net income per item" caliber note.</li>
+            <li>Refined item names changed from "(R)" to "★" in game data, breaking dictionary translations: a fallback restores translated names in every language.</li>
+          </ol>
+          <p><strong>3. Acknowledgements</strong></p>
+          <ol>
+            <li>This release was made possible by our sponsor Joey's Zhipu (GLM) membership — many thanks!</li>
+            <li>The new "Custom Chain" column is adapted from gcaxe's open-source project milkonomy (MIT) — many thanks for sharing the code!</li>
+          </ol>
+        </template>
+      </div>
+    </details>
+
+    <hr>
+
     <!-- ================== v2.8.2 ================== -->
     <details open>
       <summary style="cursor:pointer;font-weight:bold;font-size:18px;margin:16px 0 8px">
@@ -59,7 +112,7 @@ const { locale, t } = useI18n()
 
     <hr>
     <!-- ================== v2.8.1 ================== -->
-    <details open>
+    <details>
       <summary style="cursor:pointer;font-weight:bold;font-size:18px;margin:16px 0 8px">
         v2.8.1 — 2026-09-16
       </summary>
@@ -121,7 +174,7 @@ const { locale, t } = useI18n()
 
     <hr>
     <!-- ================== v2.8.0 ================== -->
-    <details open>
+    <details>
       <summary style="cursor:pointer;font-weight:bold;font-size:18px;margin:16px 0 8px">
         v2.8.0 — 2026-09-12
       </summary>
@@ -196,7 +249,7 @@ const { locale, t } = useI18n()
 
     <hr>
     <!-- ================== v2.7.0 ================== -->
-    <details open>
+    <details>
       <summary style="cursor:pointer;font-weight:bold;font-size:18px;margin:16px 0 8px">
         v2.7.0 — 2026-09-06
       </summary>
@@ -272,7 +325,7 @@ const { locale, t } = useI18n()
     </details>
 
     <hr>
-    <details open>
+    <details>
       <summary style="cursor:pointer;font-weight:bold;font-size:18px;margin:16px 0 8px">
         v2.6.0 — 2026-08-30
       </summary>

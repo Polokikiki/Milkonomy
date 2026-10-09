@@ -4,6 +4,7 @@ import type { ItemDetail } from "~/game"
 import { CoinifyCalculator, DecomposeCalculator, TransmuteCalculator } from "@/calculator/alchemy"
 import { getGameDataApi, getItemDetailOf, getPriceOf } from "@/common/apis/game"
 import { getCraftCostOf, getMaterialCostOf } from "@/common/apis/game/craft"
+import { getUsedPriceOf } from "@/common/apis/price"
 import { getTrans } from "@/locales"
 import { COIN_HRID } from "@/pinia/stores/game"
 
@@ -42,9 +43,9 @@ export interface ChainSummary {
 
 interface CalcEntry {
   calc: Calculator
-  /** 单次动作的边际成本（金币+催化剂+茶，不含被加工物本体） */
+  /** 单次动作的边际成本（金币+催化剂+茶，不含被加工物本体；每次尝试口径，催化剂已按成功率折算） */
   marginalCost: number
-  /** 单次动作的稀有/精华掉落期望产值 */
+  /** 单次成功动作的稀有/精华掉落期望产值（已含卖出税） */
   rareIncome: number
 }
 
@@ -64,17 +65,30 @@ function buildCalc(Ctor: AlchemyCtor, hrid: string, opts: ChainOptions): CalcEnt
       if (ingredients[i].price === -1) return null
     }
     const marginalCost = calc.cost - ingredients[0].count * ingredients[0].price
-    // 稀有/精华掉落 = 主产物之外的全部产物期望值
-    const mainHrids = new Set<string>()
+    // 稀有/精华掉落 = 该动作主产物条目之外的全部产物期望值（已含卖出税）。
+    // 主产物必须按条目判定而非按 hrid：同名产物会有两条目（如分解主产物炼金精华×20 +
+    // 平凡掉落炼金精华×1.587@7.8%），按 hrid 排除会把平凡掉落也误杀（对首页 profitPP
+    // 恒等式对拍即露馅）；主产物条目在 productList 前部，按期望数量逐个消费即可
+    const mainList: string[] = []
     const detail = alchemyDetailOf(hrid)
-    detail?.decomposeItems?.forEach(d => mainHrids.add(d.itemHrid))
-    detail?.transmuteDropTable?.forEach(d => mainHrids.add(d.itemHrid))
-    mainHrids.add(COIN_HRID)
+    if (Ctor === DecomposeCalculator) {
+      detail?.decomposeItems?.forEach(d => mainList.push(d.itemHrid))
+    } else if (Ctor === TransmuteCalculator) {
+      detail?.transmuteDropTable?.forEach(d => mainList.push(d.itemHrid))
+    } else {
+      mainList.push(COIN_HRID)
+    }
+    const mainExpected = new Map<string, number>()
+    for (const h of mainList) mainExpected.set(h, (mainExpected.get(h) ?? 0) + 1)
+    const consumed = new Map<string, number>()
     let rareIncome = 0
     for (const p of calc.productListWithPrice) {
-      if (!mainHrids.has(p.hrid)) {
-        rareIncome += p.count * (p.rate ?? 1) * p.price
+      const seen = consumed.get(p.hrid) ?? 0
+      if (seen < (mainExpected.get(p.hrid) ?? 0)) {
+        consumed.set(p.hrid, seen + 1)
+        continue
       }
+      rareIncome += p.count * (p.rate ?? 1) * p.price * opts.sellTaxFactor
     }
     return { calc, marginalCost, rareIncome }
   } catch {
@@ -82,17 +96,19 @@ function buildCalc(Ctor: AlchemyCtor, hrid: string, opts: ChainOptions): CalcEnt
   }
 }
 
-function sellValueOf(hrid: string): number {
-  return getPriceOf(hrid).bid
+function sellValueOf(hrid: string, sellTaxFactor: number): number {
+  return (getUsedPriceOf(hrid, 0, "bid") ?? -1) * sellTaxFactor
 }
 
-/** 退出价值：直接卖 vs 点金（点金边际收益 = 产物总值 − 催化剂等边际成本） */
+/** 退出价值：直接卖 vs 点金（点金边际收益 = 每次尝试期望收入 − 边际成本，再摊到单件） */
 function exitValueOf(hrid: string, opts: ChainOptions, entryCache: Map<string, CalcEntry | null>): number {
-  const sell = sellValueOf(hrid)
+  const sell = sellValueOf(hrid, opts.sellTaxFactor)
   if (alchemyDetailOf(hrid)?.isCoinifiable) {
     const coinify = getEntry(CoinifyCalculator, hrid, opts, entryCache)
     if (coinify) {
-      return Math.max(sell, coinify.calc.income - coinify.marginalCost)
+      const bulk = coinify.calc.ingredientListWithPrice[0]?.count || 1
+      const perAttempt = coinify.calc.income * coinify.calc.successRate - coinify.marginalCost
+      return Math.max(sell, perAttempt / bulk)
     }
   }
   return sell
@@ -115,8 +131,8 @@ export function computeDecomposeChain(hrid: string, opts: ChainOptions): Decompo
   const memo = new Map<string, number>()
   const root = decomposeRows(hrid, opts, entryCache, memo, 1, 0, new Set())
   return {
-    totalValue: memo.get(hrid) ?? sellValueOf(hrid),
-    directSellValue: sellValueOf(hrid),
+    totalValue: memo.get(hrid) ?? sellValueOf(hrid, opts.sellTaxFactor),
+    directSellValue: sellValueOf(hrid, opts.sellTaxFactor),
     totalSeconds: root.secondsTotal,
     rows: [root.row]
   }
@@ -125,7 +141,7 @@ export function computeDecomposeChain(hrid: string, opts: ChainOptions): Decompo
 function decomposeValue(hrid: string, opts: ChainOptions, entryCache: Map<string, CalcEntry | null>, memo: Map<string, number>, path: Set<string>): number {
   const cached = memo.get(hrid)
   if (cached !== undefined) return cached
-  const sell = sellValueOf(hrid)
+  const sell = sellValueOf(hrid, opts.sellTaxFactor)
   const detail = alchemyDetailOf(hrid)
   const entry = detail?.decomposeItems && !path.has(hrid) ? getEntry(DecomposeCalculator, hrid, opts, entryCache) : null
   if (!entry || !detail?.decomposeItems) {
@@ -133,11 +149,13 @@ function decomposeValue(hrid: string, opts: ChainOptions, entryCache: Map<string
     return sell
   }
   path.add(hrid)
-  // 每件 X 分解一次：主产物 drop.count 件 + 摊薄到单件的稀有掉落与边际成本
+  // 每件 X 尝试分解一次（失败无产出，物品销毁）：期望主产物 = sr × drop.count，
+  // 稀有掉落与边际成本按每次尝试摊到单件（rareIncome 是每次成功口径，×sr 折回每次尝试）
   const bulk = detail.bulkMultiplier
-  let ev = (entry.rareIncome - entry.marginalCost) / bulk
+  const sr = entry.calc.successRate
+  let ev = (entry.rareIncome * sr - entry.marginalCost) / bulk
   for (const drop of detail.decomposeItems) {
-    ev += drop.count * decomposeValue(drop.itemHrid, opts, entryCache, memo, path)
+    ev += sr * drop.count * decomposeValue(drop.itemHrid, opts, entryCache, memo, path)
   }
   path.delete(hrid)
   const value = opts.mode === "all" || ev > sell ? ev : sell
@@ -147,7 +165,7 @@ function decomposeValue(hrid: string, opts: ChainOptions, entryCache: Map<string
 
 function decomposeRows(hrid: string, opts: ChainOptions, entryCache: Map<string, CalcEntry | null>, memo: Map<string, number>, count: number, depth: number, path: Set<string>): { row: ChainStepRow, secondsTotal: number } {
   const detail = alchemyDetailOf(hrid)
-  const sell = sellValueOf(hrid)
+  const sell = sellValueOf(hrid, opts.sellTaxFactor)
   const value = decomposeValue(hrid, opts, entryCache, memo, path)
   const entry = detail?.decomposeItems && !path.has(hrid) ? getEntry(DecomposeCalculator, hrid, opts, entryCache) : null
   const shouldContinue = !!entry && (opts.mode === "all" || value > sell)
@@ -234,7 +252,7 @@ export function computeTransmuteChain(hrid: string, opts: ChainOptions): Transmu
     if (!changed) break
   }
 
-  const totalValue = values.get(hrid) ?? sellValueOf(hrid)
+  const totalValue = values.get(hrid) ?? sellValueOf(hrid, opts.sellTaxFactor)
   const hops: TransmuteHop[] = []
   let totalSeconds = 0
   let exitAdvice = getTrans("直接卖")
@@ -274,18 +292,15 @@ export function computeTransmuteChain(hrid: string, opts: ChainOptions): Transmu
     current = best.hrid
   }
 
-  // 退出方式判断
-  const exitSell = sellValueOf(current)
-  if (alchemyDetailOf(current)?.isCoinifiable) {
-    const coinify = getEntry(CoinifyCalculator, current, opts, entryCache)
-    if (coinify && coinify.calc.income - coinify.marginalCost > exitSell) {
-      exitAdvice = getTrans("点金退出")
-    }
+  // 退出方式判断（与值迭代的退出价值同口径：含税卖出 vs 每次尝试折算的点金净收益）
+  const exitSell = sellValueOf(current, opts.sellTaxFactor)
+  if (exitValueOf(current, opts, entryCache) > exitSell + 0.01) {
+    exitAdvice = getTrans("点金退出")
   }
 
   return {
     totalValue,
-    directSellValue: sellValueOf(hrid),
+    directSellValue: sellValueOf(hrid, opts.sellTaxFactor),
     totalSeconds,
     hops,
     exitAdvice
@@ -294,8 +309,9 @@ export function computeTransmuteChain(hrid: string, opts: ChainOptions): Transmu
 
 /**
  * 单件 X 转化一次的期望价值：
- * 原料[0].count 已是扣除自身返还后的净消耗（bulk×(1-返还率)），
- * 主产物按 values 计价，稀有掉落与边际成本按净消耗摊到单件。
+ * 原料[0].count 已是扣除自身返还后的净消耗（bulk×(1-返还率)，每次尝试口径），
+ * 主产物按 values 计价（产出须 ×successRate 折成每次尝试期望），
+ * 稀有掉落与边际成本同样按每次尝试摊到单件。
  */
 function transmuteStepEV(hrid: string, opts: ChainOptions, entryCache: Map<string, CalcEntry | null>, values: Map<string, number>): number {
   // 贤者之石是终点：只有退出价值，没有转化期望
@@ -307,11 +323,18 @@ function transmuteStepEV(hrid: string, opts: ChainOptions, entryCache: Map<strin
   const ingredients = entry.calc.ingredientListWithPrice
   const netInput = ingredients[0].count
   if (netInput <= 0) return -Infinity
-  let ev = entry.rareIncome - entry.marginalCost
+  const sr = entry.calc.successRate
+  let ev = entry.rareIncome * sr - entry.marginalCost
+  // 主产物按条目判定（同名双条目：主产物 + 平凡掉落，见 buildCalc），不能按 hrid 全收
+  const mainExpected = new Map<string, number>()
+  for (const d of detail.transmuteDropTable) mainExpected.set(d.itemHrid, (mainExpected.get(d.itemHrid) ?? 0) + 1)
+  const consumed = new Map<string, number>()
   for (const p of entry.calc.productListWithPrice) {
+    const seen = consumed.get(p.hrid) ?? 0
+    if (seen >= (mainExpected.get(p.hrid) ?? 0)) continue
+    consumed.set(p.hrid, seen + 1)
     if (p.hrid === hrid || p.hrid === COIN_HRID) continue
-    if (!detail.transmuteDropTable.some(d => d.itemHrid === p.hrid)) continue
-    ev += p.count * (p.rate ?? 1) * (values.get(p.hrid) ?? 0)
+    ev += sr * p.count * (p.rate ?? 1) * (values.get(p.hrid) ?? 0)
   }
   return ev / netInput
 }

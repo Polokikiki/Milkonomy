@@ -21,7 +21,13 @@ export function setLang(value: string) {
  */
 export function getTrans(key: string) {
   const messages = toRaw(lang[i18n.global.locale.value]) as Record<string, string>
-  return messages[key] || key
+  if (messages[key]) return messages[key]
+  // 游戏更新后精炼物品名由 "(R)" 改为 "★"（如 Artificer Cape ★），词典里仍是 (R) 形式：回退查找
+  if (key.includes("★")) {
+    const legacy = key.replaceAll("★", "(R)")
+    if (messages[legacy]) return messages[legacy]
+  }
+  return key
 }
 
 const i18n = createI18n({

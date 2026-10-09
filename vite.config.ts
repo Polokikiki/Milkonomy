@@ -64,7 +64,10 @@ export default defineConfig(({ mode }) => {
         clientFiles: [
           "./src/layouts/**/*.*",
           "./src/pinia/**/*.*",
-          "./src/router/**/*.*"
+          "./src/router/**/*.*",
+          // 链条自定义页模块多（结点图+配平+预置配方），不预热首次切换要现场编译 4s+
+          "./src/pages/multistep/**/*.*",
+          "./src/pages/dashboard/**/*.*"
         ]
       }
     },

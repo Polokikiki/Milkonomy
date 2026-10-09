@@ -616,7 +616,7 @@ export default {
   "市场买价 {0} / 贤者镜路径 {1}，取低": "Market buy {0} / sage-mirror path {1}, whichever is lower",
   "不逃逸：失败跌级后不停止，一路强化到目标等级（默认关闭=自动选最优逃逸等级）": "No escape: keep enhancing to the target level even after failure drops (off by default = auto-pick the best escape level)",
   "强化专业未配置本人数据：当前按默认预设计算（工具+10/等级100/房屋4/默认特殊装备），显示的强化属性不是你的。请到首页「一键导入」。": "Enhancing is not configured with your own data: currently computed with the default preset (tool +10 / level 100 / house 4 / default special gear), so the shown enhance stats are not yours. Use 1-Click Import on the homepage.",
-  "口径：利润不含经验；税率默认4%；市场无卖单但有配方的物品按自制成本计价，与首页一致": "Basis: profit excludes experience; tax defaults to 4%; items with no sell listing but a recipe are priced at self-craft cost, same as the homepage",
+  "选优目标=每件净收益（适合处理囤货，多步链条时薪可能低于首页单步排行）；利润不含经验；税率默认4%；市场无卖单但有配方的物品按自制成本计价，与首页一致": "Basis: profit excludes experience; tax defaults to 4%; items with no sell listing but a recipe are priced at self-craft cost, same as the homepage",
   "转{0}次": "{0} tries",
   "成功率 {0}": "Success {0}",
   "超级炼金排行": "Super Alchemy Ranking",
@@ -679,5 +679,29 @@ export default {
   "单步配方": "Single-step recipe",
   "火车（从头做）": "Train (from scratch)",
   "制作原料": "Craft ingredients",
-  "制作步骤": "Craft steps"
+  "制作步骤": "Craft steps",
+  // ===== 链条自定义·快捷键设置 2026-10-01 =====
+  "快捷键设置": "Hotkeys",
+  "画布快捷键": "Canvas hotkeys",
+  "切换选中节点": "Switch selected node (by direction)",
+  "删除选中节点": "Delete selected node(s)",
+  "点击按键后按下新键重新绑定；移动视图=按住空格左键拖动，Esc=取消选中": "Click a key, then press a new key to rebind; pan the view by holding Space + left-drag, Esc = deselect",
+  "节点左键拖动移动（框选后整组移动）、Delete 删除、WASD 按方向切换选中节点、按住空格+左键拖动移动视图；快捷键设置在可拖动结点图标题旁": "Drag nodes with left mouse (box-select to move a group), Delete to remove, WASD to jump selection by direction, hold Space + left-drag to pan the view; Hotkeys button sits beside the node-graph title",
+
+  "立即配平": "Balance now",
+  "返回": "Back",
+
+  "红节点内选物品": "pick item in the red node",
+  "画布": "Canvas",
+  "呼出快捷菜单（等同右键）": "Open quick menu (same as right-click)",
+  "导入/导出": "Import / Export",
+  "选择配方": "Select recipe",
+  "请先选择配方": "Select a recipe first",
+  "导出码已复制，发给朋友即可共用": "Export code copied — share it with anyone",
+  "出售": "Sell",
+  "管理配方…": "Manage recipes…",
+  "粘贴导入码": "Paste import code",
+  "导入码无效": "Invalid import code",
+  "已导入配方 {0}": "Imported recipe {0}",
+  "测试版": "Beta"
 }

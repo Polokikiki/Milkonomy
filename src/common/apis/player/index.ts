@@ -269,7 +269,7 @@ export function getSealList() {
 // #region buff计算
 export type BuffMap = Record<NoncombatStatsProp, number>
 
-function initBuffMap() {
+export function initBuffMap() {
   if (!getGameDataApi()) return
   buffs = buildBuffMap(playerConfig)
   console.log("buffs", buffs)

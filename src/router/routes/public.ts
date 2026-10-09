@@ -91,6 +91,25 @@ export const publicRoutes: RouteRecordRaw[] = [
   {
     path: "/",
     component: Layouts,
+    redirect: "/multistep",
+    children: [
+      {
+        path: "multistep",
+        component: () => import("@/pages/multistep/index.vue"),
+        name: "Multistep",
+        meta: {
+          title: t("链条自定义"),
+          elIcon: "Connection",
+          affix: false,
+          /** 侧栏标题旁显示「测试版」角标 */
+          beta: true
+        }
+      }
+    ]
+  },
+  {
+    path: "/",
+    component: Layouts,
     redirect: "/jungle",
     children: [
       {
